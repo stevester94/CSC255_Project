@@ -1,0 +1,6 @@
+---
+- name: Create WireGuard Mesh
+  hosts: wireguard
+  remote_user: root
+  roles:
+    - wireguard_tunnel

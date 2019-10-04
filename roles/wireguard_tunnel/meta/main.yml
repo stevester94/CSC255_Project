@@ -1,0 +1,18 @@
+galaxy_info:
+  role_name: wireguard-tunnel
+  author: Ivan Mihov
+  company: imihov.com
+  description: Multi server WireGuard Tunnel
+  license: MIT
+  min_ansible_version: 2.7
+  platforms:
+    - name: Ubuntu
+      versions:
+        - all
+
+  galaxy_tags:
+    - wireguard
+    - vpn
+    - networking
+
+dependencies: []

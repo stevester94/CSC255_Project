@@ -1,0 +1,20 @@
+---
+# The port to use for connections
+wireguard_port: "433"
+
+# Where to store the configs
+wireguard_path: "/etc/wireguard"
+
+# The config file name
+wireguard_network_name: "wg0"
+
+# if set an additional wireguard config file will be
+# generated at the specified path on localhost
+client_wireguard_path: ""
+
+# a list of additional peers that will be added to each server
+# wireguard_additional_peers:
+#   - comment: martin
+#     ip: 10.2.3.4
+#     key: your_wireguard_public_key
+wireguard_additional_peers: false

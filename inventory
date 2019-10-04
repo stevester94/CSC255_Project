@@ -1,0 +1,22 @@
+wireguard:
+  hosts:
+    ivan_ec2_north_cali_1:
+      ansible_host: 18.144.3.7
+      ansible_port: 22
+      ansible_user: ubuntu
+      ansible_ssh_private_key_file: ssh_keys/ivan_ubuntu_ec2.pem
+      vpn_ip: 10.9.0.1/32
+
+    ivan_ec2_north_cali_2:
+      ansible_host: 54.183.175.185
+      ansible_port: 22
+      ansible_user: ubuntu
+      ansible_ssh_private_key_file: ssh_keys/ivan_ubuntu_ec2.pem
+      vpn_ip: 10.9.0.2/32
+
+    #2
+    #172.16.190.141:
+    #  vpn_ip: 10.9.0.1/32
+    #3
+    #172.16.190.142:
+    #  vpn_ip: 10.9.0.2/32
