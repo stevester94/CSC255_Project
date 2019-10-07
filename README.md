@@ -48,3 +48,7 @@ Run the Ansible playbook:
 ```bash
 sh run.sh
 ```
+
+## TODO
+
+Create task to chmod 600 files in ssh_keys

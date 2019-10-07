@@ -1,0 +1,17 @@
+{
+  "cSpell.ignoreWords": [
+    "ansible",
+    "genkey",
+    "host",
+    "path",
+    "port",
+    "privatekey",
+    "pubkey",
+    "publickey",
+    "systemd",
+    "tee",
+    "umask",
+    "wg",
+    "wireguard"
+  ]
+}
