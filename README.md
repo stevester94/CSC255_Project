@@ -7,8 +7,8 @@ Installs [WireGuard](https://wireguard.com) on Ubuntu, creates a mesh between al
 Install Ansible
 
 ```bash
-sudo apt-add-repository ppa:ansible/ansible
-sudo apt install ansible
+sudo apt install python3 python3-pip
+sudo pip3 install ansible
 ```
 
 ## Configure
