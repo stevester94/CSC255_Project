@@ -52,3 +52,33 @@ sh run.sh
 ## TODO
 
 Create task to chmod 600 files in ssh_keys
+
+## Benchmarking
+### Generate Metrics (Server-Side)
+Requires python3 and psutil
+```bash
+sudo apt-get install python3-pip
+sudo pip3 install psutil
+```
+To run:
+```bash
+./metrics.py <duration> <interval for metrics>
+```
+Will generate a file named results.json (This results file path is hardcoded for now)
+
+### Generate Graphs (Desktop/Laptop)
+Requires matplotlib (assuming you have python3 and pip3)
+```bash
+sudo pip3 install matplotlib
+```
+parse results.json
+```bash
+./results_processor.py
+```
+### Benchmarking TODO
+Add pip3 and psutil to ansible playbook
+Optional path to results.json
+Better graph layout
+
+
+
