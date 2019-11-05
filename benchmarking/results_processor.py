@@ -42,9 +42,12 @@ def build_plots(plot_targets):
         plt.ylabel(target.y_axis_label)
         plt.title(target.title)
     
-
+import sys
 if __name__ == "__main__":
-    metrics = parse_json_to_interval_metrics("results.json")
+    if len(sys.argv) != 2:
+        print("Usage: <json file to parse>")
+
+    metrics = parse_json_to_interval_metrics(sys.argv[1])
 
     # pp.pprint(metrics)
     interval_index = get_single_metric("interval_index", metrics)

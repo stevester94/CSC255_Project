@@ -154,13 +154,13 @@ def metric_cb(metric):
     print("Finished with metric: {}".format(metric.interval_index))
 
 if __name__ == "__main__":
-    bench = Benchmark_Collector("results.json")
-    bench.register_callback(metric_cb)
-
-    if(len(sys.argv) != 3):
-        print("Usage is <duration secs> <metric interval secs>")
+    if(len(sys.argv) != 4):
+        print("Usage is <duration secs> <metric interval secs> <results out path>")
         print("Note, seconds can be fractional")
         sys.exit(1)
+
+    bench = Benchmark_Collector(sys.argv[3])
+    bench.register_callback(metric_cb)
 
     bench.start(float(sys.argv[1]), float(sys.argv[2]))
     print("Constructed")
