@@ -2,10 +2,10 @@
 
 # Needs to be installed with pip
 import psutil as ps
-import iperf3
 
 import time
-from multiprocessing import Process, Manager
+import subprocess
+from threading import Thread
 import pprint
 import json
 import sys
@@ -17,61 +17,73 @@ COLLECTOR_PADDING_SECS = 2
 pp = pprint.PrettyPrinter(indent=4)
 
 class Benchmark_Server:
-    # What a pain in the ass. Have to pass a dict from multiprocessing.Manager, so that the results
-    # can actually be passed back to the originating process. Fuck
-    def __init__(self, bind_address, bind_port, duration, protocol, managed_metrics_dict):
-        self.server = iperf3.Server()
-        
-        # Configure server
-        self.server.protocol = protocol
-        # self.server.duration = duration
-        self.server.bind_address = bind_address
-        self.server.port = bind_port
-        self.metrics = managed_metrics_dict
+    def __init__(self, bind_address, bind_port, protocol):
+        #--server --port 9001 --bind 127.0.0.1 --interval 1 -J --one-off
+        self.iperf_args = None
 
-    def _start(self):
-        self.metrics = self.server.run()
+        if protocol == "tcp":
+            self.iperf_args = ["iperf3", "--server", "--port", str(bind_port), "--bind", bind_address, "--interval", "0", "-J", "--one-off"]
+        elif protocol == "udp":
+            self.iperf_args = ["iperf3", "--server", "--port", str(bind_port), "--bind", bind_address, "--interval", "0", "-J", "--one-off"]
 
     def start(self):
-        self.thread = Process(target=self._start, args=())
-        print("Starting Server")
-        self.thread.start()
-        print("Server started")
+        print("Starting iperf server")
+        self.sub_process = subprocess.Popen(self.iperf_args, stdout=subprocess.PIPE)
+        print("iperf server started")
 
     def wait_until_done(self):
-        self.thread.join()
+        self.sub_process.wait()
 
+    def get_metrics(self):
+        stdout, _ = self.sub_process.communicate()
+        metrics  = json.loads(stdout)
+
+        return metrics
 
 class Benchmark_Client:
-    def __init__(self, target_hostname, target_port, duration, protocol, managed_metrics_dict):
-        self.client =  iperf3.Client()
-        self.metrics = managed_metrics_dict
-        # Configure Client
-        self.client.server_hostname = target_hostname
-        self.client.port = target_port
-        self.client.duration = duration
-        self.client.protocol = protocol
+    def __init__(self, target_hostname, target_port, duration, protocol):
+        self.iperf_args = None
+        self.sub_process = None
+
+        #iperf3 --client 127.0.0.1 --port 9001 --bandwidth 0 --format m --interval 5 --time 10 -J
+        if protocol == "tcp":
+            self.iperf_args = ["iperf3", "--client", target_hostname, "--port", str(target_port), "--bandwidth", "0", "--format", "m", "--interval", "0", "--time", str(duration), "-J"]
+        else:
+            self.iperf_args = ["iperf3", "--client", target_hostname, "--port", str(target_port), "--bandwidth", "0", "--format", "m", "--interval", "0", "--time", str(duration), "-J", "--udp"]
 
     def start(self):
-        print("Starting client")
-        self.thread = Process(target=self._start, args=())
-        self.thread.start()
-        print("Client started")
-
-    def _start(self):
-        self.results = self.client.run()
+        print("Starting iperf client")
+        self.sub_process = subprocess.Popen(self.iperf_args, stdout=subprocess.PIPE)
+        print("iperf client started")
 
     def wait_until_done(self):
-        self.thread.join()
+        self.sub_process.wait()
 
-    def get_results(self):
-        return self.results
+    def get_metrics(self):
+        stdout, _ = self.sub_process.communicate()
+        metrics  = json.loads(stdout)
 
+        return metrics
+
+
+class RTT_Client:
+    def __init__(self, target_hostname):
+        self.target_hostname = target_hostname
+
+    # returns the average RTT to the target
+    def run(self):
+        self.sub_process = subprocess.Popen(["ping", "-q", "-c10", self.target_hostname], stdout=subprocess.PIPE)
+        self.sub_process.wait()
+
+        stdout, _ = self.sub_process.communicate()
+
+        return stdout
+        
+
+        
 
 class Benchmark_Collector:
-    # NB!: this accepts a list, not a dict like the client/server benchmark
-    def __init__(self, managed_metrics_list):
-        self.metrics = managed_metrics_list
+    def __init__(self):
         self.callbacks = []
 
     # Begin Collection    
@@ -80,9 +92,7 @@ class Benchmark_Collector:
         self.interval_secs = interval_secs
 
         print("Running for {} seconds, collecting metrics every {} seconds".format(self.duration_secs, self.interval_secs))
-        self.thread = Process(target=self._main_loop, args=())
-
-        # print("Warning, not doing shit!")
+        self.thread = Thread(target=self._main_loop, args=())
         self.thread.start()
         
 
@@ -193,9 +203,11 @@ class Benchmark_Collector:
 
             metrics.append(i)
         
-        print("Collecting done, setting metrics")
-        self.metrics = [m._asdict() for m in self.metrics]
-        print("Metrics set")
+        # OK, kinda shitty, we have to convert all those named tuples to dicts in order to json them
+        self.metrics = [m._asdict() for m in metrics]
+
+    def get_metrics(self):
+        return self.metrics
 
 
 
@@ -222,56 +234,67 @@ if __name__ == "__main__":
     interval_secs = float(sys.argv[6])
     results_path = sys.argv[7]
 
-    with Manager() as manager:
-        client = None
-        server = None
-        client_metrics = None
-        server_metrics = None
-        baseline_metrics = manager.list()
+    client = None
+    server = None
+    rtt_client = None
+
+    bench = Benchmark_Collector()
+    bench.register_callback(metric_cb)
+    
+
+    if is_client:
+        client = Benchmark_Client(hostname, port, duration_secs, protocol)
+        client.start()
+    else:
+        server = Benchmark_Server(hostname, port, protocol) # Still need to decide if duration is necessary for the server
+        server.start()
+
+
+    time.sleep(COLLECTOR_PADDING_SECS)
+    print("Starting benchmark collector")
+    bench.start(duration_secs - COLLECTOR_PADDING_SECS, interval_secs)
+    print("Benchmark collector started")
+
+
+    if is_client:
+        print("Waiting until client is done")
+        client.wait_until_done()
+        print("Client is done")
+    else:
+        print("Waiting until server is done")
+        server.wait_until_done()
+        print("Server is done")
+
+    print("Waiting until benchmark collector is done")
+    bench.wait_until_done()
+
+
+    if is_client:
+        rtt_client = RTT_Client(hostname)
+        print(rtt_client.run())
+
+    print("All done")
+
+
+    print("Collating results")
+    all_metrics = {}
+    baseline_metrics = bench.get_metrics()
+    
+    print()
+
+    all_metrics["baseline"] = baseline_metrics
+
+    # DEBUG #
+    all_metrics = baseline_metrics
+
+    if is_client:
+        client_metrics = client.get_metrics()
+        print(json.dumps(client_metrics, indent=4, sort_keys=True))
+    else:
+        server_metrics = server.get_metrics()
+        print(json.dumps(server_metrics, indent=4, sort_keys=True))
+
+    # END DEBUG #
         
-        bench = Benchmark_Collector(baseline_metrics)
-        bench.register_callback(metric_cb)
-        
-
-        if is_client:
-            client_metrics = manager.dict()
-            client = Benchmark_Client(hostname, port, duration_secs, protocol, client_metrics)
-            client.start()
-        else:
-            server_metrics = manager.dict()
-            server = Benchmark_Server(hostname, port, duration_secs, protocol, server_metrics) # Still need to decide if duration is necessary for the server
-            server.start()
-
-
-        time.sleep(COLLECTOR_PADDING_SECS)
-        print("Starting benchmark collector")
-        bench.start(duration_secs - COLLECTOR_PADDING_SECS, interval_secs)
-        print("Benchmark collector started")
-
-
-        if is_client:
-            print("Waiting until client is done")
-            client.wait_until_done()
-        else:
-            print("Waiting until server is done")
-            server.wait_until_done()
-
-        print("Waiting until benchmark collector is done")
-        bench.wait_until_done()
-        print("All done")
-
-
-        print("Collating results")
-        all_metrics = {}
-        
-        print(baseline_metrics)
-
-        all_metrics["baseline"] = baseline_metrics
-
-        if is_client:
-            all_metrics["client"] = client_metrics
-        else:
-            all_metrics["server"] = server_metrics
-            
-        with open(results_path, "w") as f:
-            f.write(json.dumps(all_metrics, indent=4, sort_keys=True)) 
+    with open(results_path, "w") as f:
+        f.write(json.dumps(all_metrics, indent=4, sort_keys=True)) 
