@@ -38,12 +38,16 @@ class Benchmark_Server:
         stdout, _ = self.sub_process.communicate()
         metrics  = json.loads(stdout)
 
-        return metrics
+        ret_dict = {}
+        ret_dict["bytes_per_second"] = float(metrics["intervals"][0]["streams"][0]["bits_per_second"]) / 8.0
+
+        return ret_dict
 
 class Benchmark_Client:
     def __init__(self, target_hostname, target_port, duration, protocol):
         self.iperf_args = None
         self.sub_process = None
+        self.protocol = protocol
 
         #iperf3 --client 127.0.0.1 --port 9001 --bandwidth 0 --format m --interval 5 --time 10 -J
         if protocol == "tcp":
@@ -63,21 +67,48 @@ class Benchmark_Client:
         stdout, _ = self.sub_process.communicate()
         metrics  = json.loads(stdout)
 
-        return metrics
+        ret_dict = {}
+        ret_dict["bytes_per_second"] = float(metrics["intervals"][0]["streams"][0]["bits_per_second"]) / 8.0
+
+        if self.protocol == "udp":
+            ret_dict["lost_udp_packets_percent"] = metrics["end"]["sum"]["lost_percent"]
+
+        return ret_dict
 
 
 class RTT_Client:
     def __init__(self, target_hostname):
         self.target_hostname = target_hostname
 
-    # returns the average RTT to the target
+    # returns the average RTT to the target, in ms
     def run(self):
+        print("Running RTT test")
         self.sub_process = subprocess.Popen(["ping", "-q", "-c10", self.target_hostname], stdout=subprocess.PIPE)
         self.sub_process.wait()
 
         stdout, _ = self.sub_process.communicate()
+        stdout = str(stdout)
 
-        return stdout
+        # Output is in the form of 
+        #   rtt min/avg/max/mdev = 14.239/44.202/85.424/22.772 ms
+
+        equal_index = stdout.find("=")
+        substr = stdout[equal_index:-3] # Strip of trailing newline and a "'"
+
+        units = substr[-2:] # Get the units of the output
+
+        substr = substr[2:-3]
+        
+        rtt_avg = substr.split("/")[1]
+        rtt_avg = float(rtt_avg)
+
+        if units != "ms":
+            print("Units are jacked up on the ping command!")
+            sys.exit(1)
+        
+        print("RTT test done")
+        
+        return rtt_avg
         
 
         
@@ -268,10 +299,10 @@ if __name__ == "__main__":
     print("Waiting until benchmark collector is done")
     bench.wait_until_done()
 
-
+    avg_rtt_ms = None
     if is_client:
         rtt_client = RTT_Client(hostname)
-        print(rtt_client.run())
+        avg_rtt_ms = rtt_client.run()
 
     print("All done")
 
@@ -280,21 +311,19 @@ if __name__ == "__main__":
     all_metrics = {}
     baseline_metrics = bench.get_metrics()
     
-    print()
 
     all_metrics["baseline"] = baseline_metrics
 
-    # DEBUG #
-    all_metrics = baseline_metrics
-
     if is_client:
         client_metrics = client.get_metrics()
-        print(json.dumps(client_metrics, indent=4, sort_keys=True))
+        client_metrics["avg_rtt_ms"] = avg_rtt_ms
+        all_metrics["client"] = client_metrics
+        all_metrics["role"] = "client"
     else:
         server_metrics = server.get_metrics()
-        print(json.dumps(server_metrics, indent=4, sort_keys=True))
-
-    # END DEBUG #
+        all_metrics["server"] = server_metrics
+        all_metrics["role"] = "server"
         
     with open(results_path, "w") as f:
         f.write(json.dumps(all_metrics, indent=4, sort_keys=True)) 
+ 
