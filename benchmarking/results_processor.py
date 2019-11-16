@@ -5,6 +5,7 @@ import json
 import pprint
 from collections import namedtuple
 import numpy as np
+import sys
 
 pp = pprint.PrettyPrinter(indent=4)
 
@@ -61,8 +62,118 @@ def build_plot(target):
     plt.xlabel(target.x_axis_label)
     plt.ylabel(target.y_axis_label)
     plt.title(target.title)
+
+def get_single_metric_average(field, metrics):
+    return sum(get_single_metric(field, metrics)) / len(get_single_metric(field, metrics))
+
+#             Summary Table
+# Will make a new window with just this table. Be sure to display all the other built graphs before this
+# (Since this function is going to override the subplot indices, the other graphs would be lost)
+#
+# Since the math behind client and server summary is different, I'm going to split them apart, and keep the
+# common fields in build_summary_table_common
+# # 
+# Common:
+#   Protocol
+#   If server or client
+#   Avg CPU usage
+#   Avg Context switches per sec
+#   Avg interrupts per sec
+#   Avg soft interrupts per sec
+# Specific to role:
+#   RTT (If Client)
+#   Overhead Percentage
+#   Avg Bytes sent per sec (System or iperf, depending on which role this is)
+#   Avg Bytes received per sec (System or iperf, depending on which role this is)
+
+
+# Returns (Row labels, Row Data)
+# Doesn't do any matplotlib interaction
+def build_summary_table_common_data(metrics_dict, metrics):
+    rowLabels = [
+        "Protocol",
+        "Role",
+        "Avg CPU usage",
+        "Avg context switches/second",
+        "Avg interrupts/second",
+        "Avg soft interrupts/second",
+    ]
+
+    rowData = [
+        metrics_dict["protocol"],
+        metrics_dict["role"],
+        str(int(get_single_metric_average("avg_cpu_utilization", metrics)))+"%",
+        int(get_single_metric_average("context_switches_per_sec", metrics)),
+        int(get_single_metric_average("interrupts_per_sec", metrics)),
+        int(get_single_metric_average("soft_interrupts_per_sec", metrics)),
+    ]
+
+    return (rowLabels, rowData)
+
+def build_client_summary_table(metrics_dict, metrics):
+    common_row_labels, common_row_data  = build_summary_table_common_data(metrics_dict, metrics)
+
+    client_row_labels = [
+        "Avg RTT milliseconds",
+        "Send Overhead %",
+        "Avg MB Sent/sec (Effective)",
+        "Avg MB Received/sec (System)",
+    ]
+
+
+    iperf_avg_sent_bytes_per_sec  = metrics_dict["client"]["bytes_per_second"]
+    system_avg_sent_bytes_per_sec = get_single_metric_average("bytes_sent_per_sec", metrics)
+
+    send_overhead_percent = ((system_avg_sent_bytes_per_sec - iperf_avg_sent_bytes_per_sec) / iperf_avg_sent_bytes_per_sec) * 100.0
+
+    client_row_data = [
+        metrics_dict["client"]["avg_rtt_ms"],
+        str((send_overhead_percent))+"%",
+        int(metrics_dict["client"]["bytes_per_second"] / BYTES_PER_MBYTE),
+        int(get_single_metric_average("bytes_received_per_sec", metrics) / BYTES_PER_MBYTE),
+    ]
+
+    build_summary_table(common_row_labels+client_row_labels, common_row_data+client_row_data)
+
+
+def build_server_summary_table(metrics_dict, metrics):
+    common_row_labels, common_row_data = build_summary_table_common_data(metrics_dict, metrics)
+
+    server_row_labels = [
+        "Receive Overhead %",
+        "Avg MB Sent/sec (System)",
+        "Avg MB Received/sec (Effective)",
+    ]
+
+    iperf_avg_bytes_rcv_per_second = metrics_dict["server"]["bytes_per_second"]
+    system_avg_bytes_rcv_per_second = get_single_metric_average("bytes_received_per_sec", metrics)
+
+    received_overhead_percent = ((system_avg_bytes_rcv_per_second - iperf_avg_bytes_rcv_per_second) / iperf_avg_bytes_rcv_per_second) * 100.0
+
+    server_row_data = [
+        str(received_overhead_percent)+"%",
+        int(get_single_metric_average("bytes_sent_per_sec", metrics) / BYTES_PER_MBYTE),
+        int(iperf_avg_bytes_rcv_per_second / BYTES_PER_MBYTE),
+    ]
+
+    build_summary_table(common_row_labels+server_row_labels, common_row_data+server_row_data)
+
+
+# Generic call used by either client or server
+def build_summary_table(rowLabels, rowData):
+    axs = plt.subplot(1,1,1) 
+
+    # Table data needs to be a 2d list of strings
+    data = [[str(d)] for d in rowData]
+
+    axs.axis('tight')
+    axs.axis('off')
+    axs.table(cellText=data, rowLabels=rowLabels, loc='center')
+
+    plt.show()
+
     
-import sys
+
 if __name__ == "__main__":
     if len(sys.argv) != 2:
         print("Usage: <json file to parse>")
@@ -70,6 +181,7 @@ if __name__ == "__main__":
     metrics_dict = parse_json_to_dict(sys.argv[1])
 
     is_client = metrics_dict["role"] == "client"
+    protocol = metrics_dict["protocol"]
 
     metrics = parse_interval_metrics(metrics_dict)
 
@@ -130,69 +242,9 @@ if __name__ == "__main__":
         plt.plot(x_values, y_values)
     g_plot_index += 1
 
-    # Show what we got, reset the subplot index
-    # plt.show()
-    # g_plot_index = 1
-
-    #
-    # Build tables to show any network traffic not associated with iperf (IE, VPN overhead)
-    #
-    
-
-
-    # axs = plt.subplot(1,1, 1)
-    # clust_data = np.random.random((10,3))
-    # collabel=("col 1", "col 2", "col 3")
-    # rowLabels=["row " + str(x) for x in range(0,10)]
-    # axs.axis('tight')
-    # axs.axis('off')
-    # the_table = axs.table(cellText=clust_data,colLabels=collabel, rowLabels=rowLabels, loc='center')
+    plt.show()
 
     if is_client:
-        axs = plt.subplot(g_plot_nrows,g_plot_ncols, g_plot_index) 
-        collabel= ["Average Mbytes sent/sec"]
-        rowLabels=("iperf", "system wide", "overhead percent")
-
-        iperf_avg_sent_Mbytes = metrics_dict["client"]["bytes_per_second"] / BYTES_PER_MBYTE
-        system_avg_sent_Mbytes = sum(get_single_metric("bytes_sent_per_sec", metrics)) / len(get_single_metric("bytes_sent_per_sec", metrics)) / BYTES_PER_MBYTE
-        
-
-        data = [
-            iperf_avg_sent_Mbytes,
-            system_avg_sent_Mbytes,
-            (system_avg_sent_Mbytes - iperf_avg_sent_Mbytes)/system_avg_sent_Mbytes
-        ]
-
-        # Table data needs to be a 2d list of strings
-        data = [[str(d)] for d in data]
-
-        axs.axis('tight')
-        axs.axis('off')
-        the_table = axs.table(cellText=data,colLabels=collabel, rowLabels=rowLabels, loc='center')
-
-        g_plot_index += 1
-
+        build_client_summary_table(metrics_dict, metrics)
     else:
-        axs = plt.subplot(g_plot_nrows,g_plot_ncols, g_plot_index) 
-        collabel= ["Average Mbytes received/sec"]
-        rowLabels=("iperf", "system wide", "overhead percent")
-
-        iperf_avg_received_Mbytes = metrics_dict["server"]["bytes_per_second"] / BYTES_PER_MBYTE
-        system_avg_received_Mbytes = sum(get_single_metric("bytes_received_per_sec", metrics)) / len(get_single_metric("bytes_received_per_sec", metrics)) / BYTES_PER_MBYTE
-
-        data = [
-            iperf_avg_received_Mbytes,
-            system_avg_received_Mbytes,
-            (system_avg_received_Mbytes - iperf_avg_received_Mbytes)/system_avg_received_Mbytes
-        ]
-
-        # Table data needs to be a 2d list of strings
-        data = [[str(d)] for d in data]
-
-        axs.axis('tight')
-        axs.axis('off')
-        the_table = axs.table(cellText=data,colLabels=collabel, rowLabels=rowLabels, loc='center')
-
-        g_plot_index += 1
-
-    plt.show()
+        build_server_summary_table(metrics_dict, metrics)

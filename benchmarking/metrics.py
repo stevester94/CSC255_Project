@@ -277,7 +277,7 @@ if __name__ == "__main__":
         client = Benchmark_Client(hostname, port, duration_secs, protocol)
         client.start()
     else:
-        server = Benchmark_Server(hostname, port, protocol) # Still need to decide if duration is necessary for the server
+        server = Benchmark_Server(hostname, port, protocol)
         server.start()
 
 
@@ -313,6 +313,7 @@ if __name__ == "__main__":
     
 
     all_metrics["baseline"] = baseline_metrics
+    all_metrics["protocol"] = protocol
 
     if is_client:
         client_metrics = client.get_metrics()
