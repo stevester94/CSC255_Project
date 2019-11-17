@@ -97,7 +97,9 @@ def build_summary_table_common_data(metrics_dict, metrics):
         "Avg context switches/second",
         "Avg interrupts/second",
         "Avg soft interrupts/second",
-        "Target Hostname"
+        "Avg MB Sent/sec (System)",
+        "Avg MB Received/sec (System)",
+        "Target Hostname",
     ]
 
     rowData = [
@@ -107,6 +109,8 @@ def build_summary_table_common_data(metrics_dict, metrics):
         int(get_single_metric_average("context_switches_per_sec", metrics)),
         int(get_single_metric_average("interrupts_per_sec", metrics)),
         int(get_single_metric_average("soft_interrupts_per_sec", metrics)),
+        "{0:.2f} MB/sec".format(get_single_metric_average("bytes_sent_per_sec", metrics) / BYTES_PER_MBYTE),
+        "{0:.2f} MB/sec".format(get_single_metric_average("bytes_received_per_sec", metrics) / BYTES_PER_MBYTE),
         metrics_dict["target_hostname"],
     ]
 
@@ -119,7 +123,6 @@ def build_client_summary_table(metrics_dict, metrics):
         "Avg RTT milliseconds",
         "Send Overhead %",
         "Avg MB Sent/sec (Effective)",
-        "Avg MB Received/sec (System)",
     ]
 
 
@@ -136,7 +139,6 @@ def build_client_summary_table(metrics_dict, metrics):
         metrics_dict["client"]["avg_rtt_ms"],
         "{0:.2f}%".format(send_overhead_percent),
         "{0:.2f} MB/sec".format(metrics_dict["client"]["bytes_per_second"] / BYTES_PER_MBYTE),
-        "{0:.2f} MB/sec".format(get_single_metric_average("bytes_received_per_sec", metrics) / BYTES_PER_MBYTE),
     ]
 
     build_summary_table(common_row_labels+client_row_labels, common_row_data+client_row_data)
@@ -147,7 +149,6 @@ def build_server_summary_table(metrics_dict, metrics):
 
     server_row_labels = [
         "Receive Overhead %",
-        "Avg MB Sent/sec (System)",
         "Avg MB Received/sec (Effective)",
     ]
 
@@ -161,7 +162,6 @@ def build_server_summary_table(metrics_dict, metrics):
 
     server_row_data = [
         "{0:.2f}%".format(received_overhead_percent),
-        "{0:.2f} MB/sec".format(get_single_metric_average("bytes_sent_per_sec", metrics) / BYTES_PER_MBYTE),
         "{0:.2f} MB/sec".format(iperf_avg_bytes_rcv_per_second / BYTES_PER_MBYTE),
     ]
 
