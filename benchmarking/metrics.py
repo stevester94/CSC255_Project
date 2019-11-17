@@ -314,6 +314,7 @@ if __name__ == "__main__":
 
     all_metrics["baseline"] = baseline_metrics
     all_metrics["protocol"] = protocol
+    all_metrics["target_hostname"] = hostname
 
     if is_client:
         client_metrics = client.get_metrics()

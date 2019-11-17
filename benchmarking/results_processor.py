@@ -97,6 +97,7 @@ def build_summary_table_common_data(metrics_dict, metrics):
         "Avg context switches/second",
         "Avg interrupts/second",
         "Avg soft interrupts/second",
+        "Target Hostname"
     ]
 
     rowData = [
@@ -106,6 +107,7 @@ def build_summary_table_common_data(metrics_dict, metrics):
         int(get_single_metric_average("context_switches_per_sec", metrics)),
         int(get_single_metric_average("interrupts_per_sec", metrics)),
         int(get_single_metric_average("soft_interrupts_per_sec", metrics)),
+        metrics_dict["target_hostname"],
     ]
 
     return (rowLabels, rowData)
@@ -126,11 +128,15 @@ def build_client_summary_table(metrics_dict, metrics):
 
     send_overhead_percent = ((system_avg_sent_bytes_per_sec - iperf_avg_sent_bytes_per_sec) / iperf_avg_sent_bytes_per_sec) * 100.0
 
+    # Due to inherent uncertainty in tracking number of bytes handled by the OS, this can be negative for extremely small values
+    # so just 0 it so we don't have tiny negative percentages
+    send_overhead_percent = send_overhead_percent if send_overhead_percent > 0.0 else 0.0
+
     client_row_data = [
         metrics_dict["client"]["avg_rtt_ms"],
-        str((send_overhead_percent))+"%",
-        int(metrics_dict["client"]["bytes_per_second"] / BYTES_PER_MBYTE),
-        int(get_single_metric_average("bytes_received_per_sec", metrics) / BYTES_PER_MBYTE),
+        "{0:.2f}%".format(send_overhead_percent),
+        "{0:.2f} MB/sec".format(metrics_dict["client"]["bytes_per_second"] / BYTES_PER_MBYTE),
+        "{0:.2f} MB/sec".format(get_single_metric_average("bytes_received_per_sec", metrics) / BYTES_PER_MBYTE),
     ]
 
     build_summary_table(common_row_labels+client_row_labels, common_row_data+client_row_data)
@@ -148,12 +154,15 @@ def build_server_summary_table(metrics_dict, metrics):
     iperf_avg_bytes_rcv_per_second = metrics_dict["server"]["bytes_per_second"]
     system_avg_bytes_rcv_per_second = get_single_metric_average("bytes_received_per_sec", metrics)
 
+    # Due to inherent uncertainty in tracking number of bytes handled by the OS, this can be negative for extremely small values
+    # so just 0 it so we don't have tiny negative percentages
     received_overhead_percent = ((system_avg_bytes_rcv_per_second - iperf_avg_bytes_rcv_per_second) / iperf_avg_bytes_rcv_per_second) * 100.0
+    received_overhead_percent = received_overhead_percent if received_overhead_percent > 0.0 else 0.00
 
     server_row_data = [
-        str(received_overhead_percent)+"%",
-        int(get_single_metric_average("bytes_sent_per_sec", metrics) / BYTES_PER_MBYTE),
-        int(iperf_avg_bytes_rcv_per_second / BYTES_PER_MBYTE),
+        "{0:.2f}%".format(received_overhead_percent),
+        "{0:.2f} MB/sec".format(get_single_metric_average("bytes_sent_per_sec", metrics) / BYTES_PER_MBYTE),
+        "{0:.2f} MB/sec".format(iperf_avg_bytes_rcv_per_second / BYTES_PER_MBYTE),
     ]
 
     build_summary_table(common_row_labels+server_row_labels, common_row_data+server_row_data)
@@ -178,7 +187,9 @@ if __name__ == "__main__":
     if len(sys.argv) != 2:
         print("Usage: <json file to parse>")
 
-    metrics_dict = parse_json_to_dict(sys.argv[1])
+    file_path = sys.argv[1]
+
+    metrics_dict = parse_json_to_dict(file_path)
 
     is_client = metrics_dict["role"] == "client"
     protocol = metrics_dict["protocol"]
@@ -191,7 +202,7 @@ if __name__ == "__main__":
     #######################
     # Build the plots 
     #######################
-    plt.figure().canvas.set_window_title('General')
+    plt.figure().canvas.set_window_title('General '+file_path)
 
     # Plot_Target(title="timestamp", y_values=get_single_metric("timestamp", metrics), x_values=interval_index, x_axis_label="Interval Index", y_axis_label="THE_Y"))
     build_plot(Plot_Target(title="avg_cpu_utilization", y_values=get_single_metric("avg_cpu_utilization", metrics), x_values=interval_index, x_axis_label="Interval Index", y_axis_label="Utilization %"))
@@ -244,6 +255,8 @@ if __name__ == "__main__":
 
     plt.show()
 
+
+    plt.figure().canvas.set_window_title('Summary '+file_path)
     if is_client:
         build_client_summary_table(metrics_dict, metrics)
     else:
