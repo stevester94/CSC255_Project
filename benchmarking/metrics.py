@@ -156,7 +156,7 @@ class Benchmark_Collector:
 
         # This returns number of bytes sent/received since system start, so we are guaranteed to be monotonically increasing
         # Also entails we need a reference point for when we start collecting metrics, hence we need this initial
-        network_initial = ps.net_io_counters()
+        network_initial = ps.net_io_counters(pernic=True)["eth0"]
         cpu_stats_intial = ps.cpu_stats()
 
         while(time.time() - self.start_time  < self.duration_secs):
