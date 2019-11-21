@@ -19,6 +19,7 @@ PATH_TO_CERT=$9
 RESULTS_PREFIX=${10}
 
 BENCHMARK_ROOT_DIR="/home/ubuntu/CSC255_Project/benchmarking/"
+#BENCHMARK_ROOT_DIR="/home/steven/School/CSC255/CSC255_Project/benchmarking/"
 
 SERVER_RESULTS_NAME=$RESULTS_PREFIX"_server_results.json"
 CLIENT_RESULTS_NAME=$RESULTS_PREFIX"_client_results.json"

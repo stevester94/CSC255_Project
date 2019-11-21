@@ -206,7 +206,7 @@ class Benchmark_Collector:
 
             # Calculate number of bytes sent in this interval.
             # This gives number of bytes sent/received since system start, so we are guaranteed to be monotonically increasing
-            network_interval = ps.net_io_counters()
+            network_interval = ps.net_io_counters(pernic=True)["eth0"]
 
             # if first interval, use the network_initial we took before starting
             if(len(metrics) == 0):
