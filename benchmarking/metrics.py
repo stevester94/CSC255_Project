@@ -114,8 +114,9 @@ class RTT_Client:
         
 
 class Benchmark_Collector:
-    def __init__(self):
+    def __init__(self, nic_name):
         self.callbacks = []
+        self.nic_name = nic_name
 
     # Begin Collection    
     def start(self, duration_secs, interval_secs):
@@ -156,7 +157,7 @@ class Benchmark_Collector:
 
         # This returns number of bytes sent/received since system start, so we are guaranteed to be monotonically increasing
         # Also entails we need a reference point for when we start collecting metrics, hence we need this initial
-        network_initial = ps.net_io_counters(pernic=True)["eth0"]
+        network_initial = ps.net_io_counters(pernic=True)[self.nic_name]
         cpu_stats_intial = ps.cpu_stats()
 
         while(time.time() - self.start_time  < self.duration_secs):
@@ -206,7 +207,7 @@ class Benchmark_Collector:
 
             # Calculate number of bytes sent in this interval.
             # This gives number of bytes sent/received since system start, so we are guaranteed to be monotonically increasing
-            network_interval = ps.net_io_counters(pernic=True)["eth0"]
+            network_interval = ps.net_io_counters(pernic=True)[self.nic_name]
 
             # if first interval, use the network_initial we took before starting
             if(len(metrics) == 0):
@@ -247,9 +248,10 @@ def metric_cb(metric):
     print("Finished with metric: {}".format(metric.interval_index))
 
 if __name__ == "__main__":
-    if(len(sys.argv) != 8):
-        print("Usage is <client|server> <tcp|udp> <hostname> <port> <duration secs> <metric interval secs> <results out path>")
+    if(len(sys.argv) != 9):
+        print("Usage is <client|server> <tcp|udp> <hostname> <port> <duration secs> <metric interval secs> <results out path> <nic name>")
         print("Note, metric interval seconds can be fractional, duration must be whole seconds")
+        print("Note, nic name is the name of the nic that is passing traffic, that is not wireguard. Generally eth0")
         print("Note, the general metrics (interrupts, cpu usage, etc) start {} seconds after iperf, and end {} seconds before iperf".format(COLLECTOR_PADDING_SECS,COLLECTOR_PADDING_SECS))
         print("    This is so that we only collect metrics while the test is running")
         sys.exit(1)
@@ -264,12 +266,13 @@ if __name__ == "__main__":
     duration_secs = int(sys.argv[5])
     interval_secs = float(sys.argv[6])
     results_path = sys.argv[7]
+    nic_name = sys.argv[8]
 
     client = None
     server = None
     rtt_client = None
 
-    bench = Benchmark_Collector()
+    bench = Benchmark_Collector(nic_name)
     bench.register_callback(metric_cb)
     
 
