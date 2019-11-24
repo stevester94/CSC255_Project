@@ -5,6 +5,18 @@ import paramiko
 import pprint
 import time
 import socket
+import os
+import json
+import results_processor
+import sys 
+
+
+    # print("=============== BULLSHIT ONE OFF TESTING ===============")
+    # summaries.append(results_processor.get_summary("results/"+case["CLIENT_RESULTS_NAME"]))
+    # summaries.append(results_processor.get_summary("results/"+case["SERVER_RESULTS_NAME"]))
+    # pp.pprint(summaries)
+    # sys.exit(0)
+
 
 pp = pprint.PrettyPrinter()
 
@@ -48,7 +60,7 @@ if not ONE_OFF:
     },
 
     ################
-    # AWS Cases
+    # AWS Long Haul Cases
     ################
     {
         "SERVER_SSH_USERNAME" : "ubuntu",
@@ -56,7 +68,7 @@ if not ONE_OFF:
         "SERVER_SSH_IP" : "aws_singapore.ssmackey.com",
         "SERVER_TEST_IP" : WIREGUARD_SERVER_IP,
         "CLIENT_SSH_IP" : "aws_oregon.ssmackey.com",
-        "RESULTS_FILE_PREFIX" : "aws_wireguard",
+        "RESULTS_FILE_PREFIX" : "aws_longhaul_wireguard",
         "NIC_NAME" : "eth0",
         "METRICS_BIN_PATH" : AWS_METRIC_BIN_PATH,
     },
@@ -66,7 +78,7 @@ if not ONE_OFF:
         "SERVER_SSH_IP" : "aws_singapore.ssmackey.com",
         "SERVER_TEST_IP" : "aws_singapore.ssmackey.com",
         "CLIENT_SSH_IP" : "aws_oregon.ssmackey.com",
-        "RESULTS_FILE_PREFIX" : "aws_regular",
+        "RESULTS_FILE_PREFIX" : "aws_longhaul_regular",
         "NIC_NAME" : "eth0",
         "METRICS_BIN_PATH" : AWS_METRIC_BIN_PATH,
     },
@@ -76,11 +88,10 @@ if not ONE_OFF:
         "SERVER_SSH_IP" : "aws_singapore.ssmackey.com",
         "SERVER_TEST_IP" : OPENVPN_SERVER_IP,
         "CLIENT_SSH_IP" : "aws_oregon.ssmackey.com",
-        "RESULTS_FILE_PREFIX" : "aws_openvpn",
+        "RESULTS_FILE_PREFIX" : "aws_longhaul_openvpn",
         "NIC_NAME" : "eth0",
         "METRICS_BIN_PATH" : AWS_METRIC_BIN_PATH,
     },
-
     ################
     # VM Cases
     ################
@@ -116,18 +127,38 @@ if not ONE_OFF:
     },
     ]
 else:
-    TEST_DURATION_SECS = 10
-    PROTOCOLS = ["tcp"]
+    TEST_DURATION_SECS = 15
+    PROTOCOLS = ["tcp", "udp"]
     CASES = [
     {
-        "SERVER_SSH_USERNAME" : "ubuntu",
-        "CLIENT_SSH_USERNAME" : "ubuntu",
-        "SERVER_SSH_IP" : "aws_singapore.ssmackey.com",
-        "SERVER_TEST_IP" : "aws_singapore.ssmackey.com",
-        "CLIENT_SSH_IP" : "aws_oregon.ssmackey.com",
-        "RESULTS_FILE_PREFIX" : "aws_regular",
-        "NIC_NAME" : "eth0",
-        "METRICS_BIN_PATH" : AWS_METRIC_BIN_PATH,
+        "SERVER_SSH_USERNAME" : "steven",
+        "CLIENT_SSH_USERNAME" : "steven",
+        "SERVER_SSH_IP" : "192.168.86.100",
+        "SERVER_TEST_IP" : WIREGUARD_SERVER_IP,
+        "CLIENT_SSH_IP" : "192.168.86.200",
+        "RESULTS_FILE_PREFIX" : "vm_wireguard",
+        "NIC_NAME" : "ens34",
+        "METRICS_BIN_PATH" : VM_METRIC_BIN_PATH,
+    },
+    {
+        "SERVER_SSH_USERNAME" : "steven",
+        "CLIENT_SSH_USERNAME" : "steven",
+        "SERVER_SSH_IP" : "192.168.86.100",
+        "SERVER_TEST_IP" : "192.168.86.100",
+        "CLIENT_SSH_IP" : "192.168.86.200",
+        "RESULTS_FILE_PREFIX" : "vm_regular",
+        "NIC_NAME" : "ens34",
+        "METRICS_BIN_PATH" : VM_METRIC_BIN_PATH,
+    },
+    {
+        "SERVER_SSH_USERNAME" : "steven",
+        "CLIENT_SSH_USERNAME" : "steven",
+        "SERVER_SSH_IP" : "192.168.86.100",
+        "SERVER_TEST_IP" : OPENVPN_SERVER_IP,
+        "CLIENT_SSH_IP" : "192.168.86.200",
+        "RESULTS_FILE_PREFIX" : "vm_openvpn",
+        "NIC_NAME" : "ens34",
+        "METRICS_BIN_PATH" : VM_METRIC_BIN_PATH,
     },
     ]
 
@@ -164,7 +195,7 @@ def poll_channel(channel, silent=False):
     recv = None
 
     try:
-        recv = channel.recv(80)
+        recv = channel.recv(1000)
     except socket.timeout as e: return True
 
     if len(recv) == 0:
@@ -186,6 +217,8 @@ for c in CASES:
         new_c["TEST_DURATION_SECS"] = TEST_DURATION_SECS
         new_c["METRICS_INTERVAL_SECS"] = METRICS_INTERVAL_SECS
 
+        new_c["CASE_NAME"] = c["RESULTS_FILE_PREFIX"] + "_" + new_c["PROTOCOL"]
+        
         new_c["CLIENT_RESULTS_NAME"] = c["RESULTS_FILE_PREFIX"] + "_" + new_c["PROTOCOL"] + "_client.json"
         new_c["SERVER_RESULTS_NAME"] = c["RESULTS_FILE_PREFIX"] + "_" + new_c["PROTOCOL"] + "_server.json"
 
@@ -194,10 +227,17 @@ for c in CASES:
 
         FINAL_CASES.append(new_c)
 
+summaries = []
+
+try:
+    os.mkdir("results")
+except FileExistsError:
+    pass
 
 print("Have {} cases".format(len(FINAL_CASES)))
 for case in FINAL_CASES:
     pp.pprint(case)
+
 
     
 
@@ -237,7 +277,7 @@ for case in FINAL_CASES:
     
     test_done = False
     while not test_done:
-        # time.sleep(1)
+        time.sleep(1)
         server_still_working = poll_channel(server_channel)
         # if not server_still_working: print("Server is done")
 
@@ -249,22 +289,30 @@ for case in FINAL_CASES:
 
     print("Fetching client results")
     client_client_sftp=client_client.open_sftp()
-    client_client_sftp.get(case["CLIENT_RESULTS_PATH"], case["CLIENT_RESULTS_NAME"])
+    client_client_sftp.get(case["CLIENT_RESULTS_PATH"], "results/"+case["CLIENT_RESULTS_NAME"])
 
     print("Fetching server results")
     server_client_sftp=server_client.open_sftp()
-    server_client_sftp.get(case["SERVER_RESULTS_PATH"], case["SERVER_RESULTS_NAME"])
+    server_client_sftp.get(case["SERVER_RESULTS_PATH"], "results/"+case["SERVER_RESULTS_NAME"])
 
-    print("Done with case")
+    print("Closing SSH connections")
     server_client.close()
     client_client.close()
 
+    case_summary = {}
+    case_summary["case name"] = case["CASE_NAME"]
+    case_summary["client"] = results_processor.get_summary("results/"+case["CLIENT_RESULTS_NAME"])
+    case_summary["server"] = results_processor.get_summary("results/"+case["SERVER_RESULTS_NAME"])
+
+    summaries.append(case_summary)
+
+
+print("Completed {} cases, should have {} results files".format(len(FINAL_CASES), len(FINAL_CASES)*2))
+
+pp.pprint(summaries)
+
+with open("results/all_results.json", "w") as f:
+    f.write(json.dumps(summaries, indent=4))
+
+print("Final written")
 print("All done")
-print("Completed {} cases, should have {} results files", len(FINAL_CASES), len(FINAL_CASES)*2)
-
-# SERVER_COMMAND="$BENCHMARK_ROOT_DIR$BINARY_NAME server $PROTOCOL $SERVER_TEST_IP $PORT $DURATION $INTERVAL $SERVER_RESULTS_OUT_PATH $NIC_NAME"
-# CLIENT_COMMAND="$BENCHMARK_ROOT_DIR$BINARY_NAME client $PROTOCOL $SERVER_TEST_IP $PORT $DURATION $INTERVAL $CLIENT_RESULTS_OUT_PATH $NIC_NAME"
-
-# SERVER_COMMAND="$BENCHMARK_ROOT_DIR$BINARY_NAME server $PROTOCOL $SERVER_TEST_IP $PORT $DURATION $INTERVAL $SERVER_RESULTS_OUT_PATH $NIC_NAME"
-# CLIENT_COMMAND="$BENCHMARK_ROOT_DIR$BINARY_NAME client $PROTOCOL $SERVER_TEST_IP $PORT $DURATION $INTERVAL $CLIENT_RESULTS_OUT_PATH $NIC_NAME"
-

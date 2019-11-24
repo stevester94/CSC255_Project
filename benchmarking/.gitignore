@@ -1,2 +1,3 @@
-results.json
+*.json
+results
 __pycache__/

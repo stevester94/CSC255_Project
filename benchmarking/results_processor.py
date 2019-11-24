@@ -116,7 +116,8 @@ def build_summary_table_common_data(metrics_dict, metrics):
 
     return (rowLabels, rowData)
 
-def build_client_summary_table(metrics_dict, metrics):
+# returns [row labels], [row data]
+def build_client_summary_data(metrics_dict, metrics):
     common_row_labels, common_row_data  = build_summary_table_common_data(metrics_dict, metrics)
 
     client_row_labels = [
@@ -141,10 +142,14 @@ def build_client_summary_table(metrics_dict, metrics):
         "{0:.2f} MB/sec".format(metrics_dict["client"]["bytes_per_second"] / BYTES_PER_MBYTE),
     ]
 
-    build_summary_table(common_row_labels+client_row_labels, common_row_data+client_row_data)
+    return (common_row_labels+client_row_labels, common_row_data+client_row_data)
 
+def build_client_summary_table(metrics_dict, metrics):
+    labels, data = build_client_summary_data(metrics_dict, metrics)
 
-def build_server_summary_table(metrics_dict, metrics):
+    build_summary_table(labels, data)
+
+def build_server_summary_data(metrics_dict, metrics):
     common_row_labels, common_row_data = build_summary_table_common_data(metrics_dict, metrics)
 
     server_row_labels = [
@@ -165,7 +170,12 @@ def build_server_summary_table(metrics_dict, metrics):
         "{0:.2f} MB/sec".format(iperf_avg_bytes_rcv_per_second / BYTES_PER_MBYTE),
     ]
 
-    build_summary_table(common_row_labels+server_row_labels, common_row_data+server_row_data)
+    return (common_row_labels+server_row_labels, common_row_data+server_row_data)
+
+def build_server_summary_table(metrics_dict, metrics):
+    labels, data = build_server_summary_data(metrics_dict, metrics)
+
+    build_summary_table(labels, data)
 
 
 # Generic call used by either client or server
@@ -181,7 +191,23 @@ def build_summary_table(rowLabels, rowData):
 
     plt.show()
 
-    
+# Intended for use by other scripts
+# returns {}
+def get_summary(file_path):
+    metrics_dict = parse_json_to_dict(file_path)
+
+    is_client = metrics_dict["role"] == "client"
+    metrics = parse_interval_metrics(metrics_dict)
+
+    labels = None
+    data = None
+
+    if is_client:
+        labels, data = build_client_summary_data(metrics_dict, metrics)
+    else:
+        labels, data = build_server_summary_data(metrics_dict, metrics)
+
+    return dict(zip(labels, data))
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
