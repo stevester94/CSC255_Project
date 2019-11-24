@@ -1,4 +1,4 @@
-# Private server to server tunnel with Ansible and WireGuard
+# Private server to server tunnel with Ansible, WireGuard, and OpenVPN
 
 Installs [WireGuard](https://wireguard.com) on Ubuntu, creates a mesh between all servers by adding them all as peers and configures the wg-quick systemd service.
 
