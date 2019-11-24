@@ -39,6 +39,22 @@ wireguard:
       ansible_user: ubuntu
       ansible_ssh_private_key_file: ssh_keys/ec2_2.pem
       vpn_ip: 10.9.0.2/32
+
+openvpn_servers:
+  hosts:
+    ec2_1:
+      ansible_host: 1.2.3.4
+      ansible_port: 22
+      ansible_user: ubuntu
+      ansible_ssh_private_key_file: ssh_keys/ec2_1.pem
+
+openvpn_clients:
+  hosts:
+    ec2_2:
+      ansible_host: 1.2.3.5
+      ansible_port: 22
+      ansible_user: ubuntu
+      ansible_ssh_private_key_file: ssh_keys/ec2_2.pem
 ```
 
 ## Run
