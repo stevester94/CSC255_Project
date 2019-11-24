@@ -22,10 +22,11 @@ pp = pprint.PrettyPrinter()
 
 
 TEST_PORT = 9001
-TEST_DURATION_SECS = 10
+TEST_DURATION_SECS = 15
 METRICS_INTERVAL_SECS = 1
 
 PROTOCOLS = ["tcp", "udp"]
+# PROTOCOLS = ["udp"]
 
 WIREGUARD_SERVER_IP = "10.9.0.1"
 OPENVPN_SERVER_IP   = "10.8.0.1"
@@ -40,7 +41,7 @@ LOCAL_METRIC_BIN_PATH =  "/home/steven/School/CSC255/CSC255_Project/benchmarking
 
 
 CASES = None
-ONE_OFF = True
+ONE_OFF = False
 
 
 if not ONE_OFF:
@@ -66,7 +67,7 @@ if not ONE_OFF:
         "SERVER_SSH_USERNAME" : "ubuntu",
         "CLIENT_SSH_USERNAME" : "ubuntu",
         "SERVER_SSH_IP" : "aws_singapore.ssmackey.com",
-        "SERVER_TEST_IP" : WIREGUARD_SERVER_IP,
+        "SERVER_TEST_IP" : "10.9.0.200",
         "CLIENT_SSH_IP" : "aws_oregon.ssmackey.com",
         "RESULTS_FILE_PREFIX" : "aws_longhaul_wireguard",
         "NIC_NAME" : "eth0",
@@ -236,75 +237,106 @@ except FileExistsError:
 
 print("Have {} cases".format(len(FINAL_CASES)))
 for case in FINAL_CASES:
+    print("================================================================================================================================================================")
     pp.pprint(case)
 
 
-    
+    num_retries = 0
+    was_succesful = False
 
-    server_client = paramiko.SSHClient()
-    server_client.load_system_host_keys()
-    server_client.connect(case["SERVER_SSH_IP"], username=case["SERVER_SSH_USERNAME"], timeout=5)
+    while not was_succesful:
+        print("Attempt {}".format(num_retries))
 
-    client_client = paramiko.SSHClient()
-    client_client.load_system_host_keys()
-    client_client.connect(case["CLIENT_SSH_IP"], username=case["CLIENT_SSH_USERNAME"], timeout=5)
+        server_client = paramiko.SSHClient()
+        server_client.load_system_host_keys()
+        server_client.connect(case["SERVER_SSH_IP"], username=case["SERVER_SSH_USERNAME"], timeout=5)
 
-    # remove any pre-exisitng results
-    rm_ret = synch_ssh_command(server_client, "rm {}".format(case["SERVER_RESULTS_PATH"]))
-    if rm_ret != 0:
-        print("Server failed to remove previous results, this is fine")
-    else:
-        print("Removed previous results")
-    rm_ret = synch_ssh_command(client_client, "rm {}".format(case["CLIENT_RESULTS_PATH"]))
-    if rm_ret != 0:
-        print("Client failed to remove previous results, this is fine")
-    else:
-        print("Removed previous results")
-    
+        client_client = paramiko.SSHClient()
+        client_client.load_system_host_keys()
+        client_client.connect(case["CLIENT_SSH_IP"], username=case["CLIENT_SSH_USERNAME"], timeout=5)
 
-    print("All ready, executing tests...")
-    server_command = "{METRICS_BIN_PATH} server {PROTOCOL} {SERVER_TEST_IP} {TEST_PORT} {TEST_DURATION_SECS} {METRICS_INTERVAL_SECS} {SERVER_RESULTS_PATH} {NIC_NAME}".format(**case)
-    print("Server is executing: " + server_command)
-    server_channel = asynch_ssh_command(server_client, server_command)
+        # remove any pre-exisitng results
+        rm_ret = synch_ssh_command(server_client, "rm {}".format(case["SERVER_RESULTS_PATH"]))
+        if rm_ret != 0:
+            print("Server failed to remove previous results, this is fine")
+        else:
+            print("Removed previous results")
+        rm_ret = synch_ssh_command(client_client, "rm {}".format(case["CLIENT_RESULTS_PATH"]))
+        if rm_ret != 0:
+            print("Client failed to remove previous results, this is fine")
+        else:
+            print("Removed previous results")
         
 
-    # We wait just a smidgen for the server to come alive
-    time.sleep(1)
-    client_command = "{METRICS_BIN_PATH} client {PROTOCOL} {SERVER_TEST_IP} {TEST_PORT} {TEST_DURATION_SECS} {METRICS_INTERVAL_SECS} {CLIENT_RESULTS_PATH} {NIC_NAME}".format(**case)
-    print("Client is executing: " + client_command)
-    client_channel = asynch_ssh_command(client_client, client_command)
+        print("All ready, executing tests...")
+        server_command = "{METRICS_BIN_PATH} server {PROTOCOL} {SERVER_TEST_IP} {TEST_PORT} {TEST_DURATION_SECS} {METRICS_INTERVAL_SECS} {SERVER_RESULTS_PATH} {NIC_NAME} 2>&1 > /tmp/last_server_run.log".format(**case)
+        print("Server is executing: " + server_command)
+        server_channel = asynch_ssh_command(server_client, server_command)
+            
+
+        # We wait just a smidgen for the server to come alive
+        time.sleep(5)
+        client_command = "{METRICS_BIN_PATH} client {PROTOCOL} {SERVER_TEST_IP} {TEST_PORT} {TEST_DURATION_SECS} {METRICS_INTERVAL_SECS} {CLIENT_RESULTS_PATH} {NIC_NAME}  2>&1 > /tmp/last_client_run.log".format(**case)
+        print("Client is executing: " + client_command)
+        client_channel = asynch_ssh_command(client_client, client_command)
+            
         
-    
-    test_done = False
-    while not test_done:
+        test_done = False
+        while not test_done:
+            time.sleep(1)
+            server_still_working = poll_channel(server_channel)
+            # if not server_still_working: print("Server is done")
+
+            client_still_working = poll_channel(client_channel)
+            # if not client_still_working: print("Client is done")
+
+            test_done = (not server_still_working) and (not client_still_working)
+
+        # Running into race condition with the file being available to scp down, wait
         time.sleep(1)
-        server_still_working = poll_channel(server_channel)
-        # if not server_still_working: print("Server is done")
 
-        client_still_working = poll_channel(client_channel)
-        # if not client_still_working: print("Client is done")
+        # Attempt to get the results. This is where we'll see the bizarre shit where the test just did not work
+        # If the file does not exist, the test failed, so we will try again
+        try:
+            print("Fetching client results: {}".format(case["CLIENT_RESULTS_PATH"]))
+            client_client_sftp=client_client.open_sftp()
+            client_client_sftp.get(case["CLIENT_RESULTS_PATH"], "results/"+case["CLIENT_RESULTS_NAME"])
+        except:
+            print("Failure detected for client, retry in 5 seconds")
+            print("Closing SSH connections")
+            server_client.close()
+            client_client.close()
+            num_retries += 1
+            time.sleep(5)
+            continue
 
-        test_done = (not server_still_working) and (not client_still_working)
+        try:
+            print("Fetching server results: {}".format(case["SERVER_RESULTS_PATH"]))
+            server_client_sftp=server_client.open_sftp()
+            server_client_sftp.get(case["SERVER_RESULTS_PATH"], "results/"+case["SERVER_RESULTS_NAME"])
+        except:
+            print("Failure detected for server, retry in 5 seconds")
+            print("Closing SSH connections")
+            server_client.close()
+            client_client.close()
+            num_retries += 1
+            time.sleep(5)
+            continue
 
 
-    print("Fetching client results")
-    client_client_sftp=client_client.open_sftp()
-    client_client_sftp.get(case["CLIENT_RESULTS_PATH"], "results/"+case["CLIENT_RESULTS_NAME"])
+        case_summary = {}
+        case_summary["case name"] = case["CASE_NAME"]
+        case_summary["num retries"] = num_retries
+        case_summary["client"] = results_processor.get_summary("results/"+case["CLIENT_RESULTS_NAME"])
+        case_summary["server"] = results_processor.get_summary("results/"+case["SERVER_RESULTS_NAME"])
 
-    print("Fetching server results")
-    server_client_sftp=server_client.open_sftp()
-    server_client_sftp.get(case["SERVER_RESULTS_PATH"], "results/"+case["SERVER_RESULTS_NAME"])
+        summaries.append(case_summary)
 
-    print("Closing SSH connections")
-    server_client.close()
-    client_client.close()
+        print("Closing SSH connections")
+        server_client.close()
+        client_client.close()
 
-    case_summary = {}
-    case_summary["case name"] = case["CASE_NAME"]
-    case_summary["client"] = results_processor.get_summary("results/"+case["CLIENT_RESULTS_NAME"])
-    case_summary["server"] = results_processor.get_summary("results/"+case["SERVER_RESULTS_NAME"])
-
-    summaries.append(case_summary)
+        was_succesful = True
 
 
 print("Completed {} cases, should have {} results files".format(len(FINAL_CASES), len(FINAL_CASES)*2))
