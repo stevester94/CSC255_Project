@@ -1,4 +1,4 @@
-if [ "$#" -ne 10 ]; then
+if [ "$#" -ne 11 ]; then
     echo "Usage: <ssh username> <server ssh ip> <server test ip> <client ssh ip> <protocol> <port> <test duration> <metrics interval> <path to ssh cert> <results file prefix>"
     echo "    Note: username and ssh certificate must be the same for both client and server machines"
     echo "    Note: the results file prefix arg can be anything, it just prefixes the json result files with whatever you give it"
@@ -17,8 +17,9 @@ DURATION=$7
 INTERVAL=$8
 PATH_TO_CERT=$9
 RESULTS_PREFIX=${10}
+NIC_NAME=${11}
 
-BENCHMARK_ROOT_DIR="/home/ubuntu/CSC255_Project/benchmarking/"
+BENCHMARK_ROOT_DIR="/home/"$SSH_USERNAME"/CSC255_Project/benchmarking/"
 #BENCHMARK_ROOT_DIR="/home/steven/School/CSC255/CSC255_Project/benchmarking/"
 
 SERVER_RESULTS_NAME=$RESULTS_PREFIX"_server_results.json"
@@ -29,8 +30,8 @@ CLIENT_RESULTS_OUT_PATH="~/$CLIENT_RESULTS_NAME"
 BINARY_NAME="metrics.py"
 
 
-SERVER_COMMAND="$BENCHMARK_ROOT_DIR$BINARY_NAME server $PROTOCOL $SERVER_TEST_IP $PORT $DURATION $INTERVAL $SERVER_RESULTS_OUT_PATH"
-CLIENT_COMMAND="$BENCHMARK_ROOT_DIR$BINARY_NAME client $PROTOCOL $SERVER_TEST_IP $PORT $DURATION $INTERVAL $CLIENT_RESULTS_OUT_PATH"
+SERVER_COMMAND="$BENCHMARK_ROOT_DIR$BINARY_NAME server $PROTOCOL $SERVER_TEST_IP $PORT $DURATION $INTERVAL $SERVER_RESULTS_OUT_PATH $NIC_NAME"
+CLIENT_COMMAND="$BENCHMARK_ROOT_DIR$BINARY_NAME client $PROTOCOL $SERVER_TEST_IP $PORT $DURATION $INTERVAL $CLIENT_RESULTS_OUT_PATH $NIC_NAME"
 
 echo "clearing previous results"
 ssh -i $PATH_TO_CERT $SSH_USERNAME@$SERVER_SSH_IP rm $SERVER_RESULTS_OUT_PATH
@@ -57,5 +58,5 @@ echo "Done, fetching the results"
 scp -i $PATH_TO_CERT $SSH_USERNAME@$SERVER_SSH_IP:$SERVER_RESULTS_OUT_PATH .
 scp -i $PATH_TO_CERT $SSH_USERNAME@$CLIENT_SSH_IP:$CLIENT_RESULTS_OUT_PATH .
 
-./results_processor.py  $SERVER_RESULTS_NAME &
-./results_processor.py  $CLIENT_RESULTS_NAME &
+../results_processor.py  $SERVER_RESULTS_NAME &
+../results_processor.py  $CLIENT_RESULTS_NAME &

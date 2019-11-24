@@ -1,7 +1,7 @@
 SSH_USERNAME=ubuntu
-SERVER_SSH_IP=aws3.ssmackey.com
+SERVER_SSH_IP=aws_singapore.ssmackey.com
 SERVER_TEST_IP=10.9.0.1
-CLIENT_SSH_IP=aws2.ssmackey.com
+CLIENT_SSH_IP=aws_oregon.ssmackey.com
 PROTOCOL=tcp
 PORT=9001
 DURATION=30
