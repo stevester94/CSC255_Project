@@ -1,7 +1,7 @@
 wireguard:
   hosts:
     ivan_ec2_north_cali_1:
-      ansible_host: 18.144.28.68
+      ansible_host: 13.52.214.198
       ansible_port: 22
       ansible_user: ubuntu
       ansible_ssh_private_key_file: ssh_keys/ivan_ubuntu_ec2.pem
@@ -13,3 +13,19 @@ wireguard:
       ansible_user: ubuntu
       ansible_ssh_private_key_file: ssh_keys/alex_ubuntu_ec2.pem
       vpn_ip: 10.9.0.2/32
+
+openvpn_servers:
+  hosts:
+    ivan_ec2_north_cali_1:
+      ansible_host: 13.52.214.198
+      ansible_port: 22
+      ansible_user: ubuntu
+      ansible_ssh_private_key_file: ssh_keys/ivan_ubuntu_ec2.pem
+
+openvpn_clients:
+  hosts:
+    alex_ec2_ohio_1:
+      ansible_host: 3.14.244.88
+      ansible_port: 22
+      ansible_user: ubuntu
+      ansible_ssh_private_key_file: ssh_keys/alex_ubuntu_ec2.pem

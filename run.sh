@@ -3,10 +3,16 @@
 # Disable host key checking
 export ANSIBLE_HOST_KEY_CHECKING=false
 
-# Call the WireGuard Ansible playbook and inventory file
+# Call the Ansible playbook and inventory file
 # with the become option and ask for pass
-#ansible-playbook -i inventory wireguard.yml -b -K --user=root --ask-pass
+#ansible-playbook -i inventory vpn.yml -b -K --user=root --ask-pass
 
-# Call the WireGuard Ansible playbook and inventory file
+# Call the Ansible playbook and inventory file
 # with the become option, this will assume a key is used, and sudo don't require pass
-ansible-playbook -i inventory wireguard.yml -b --user=root
+
+if [ -z "$1" ]
+  then
+    echo "No argument supplied. Please pick between wiregiard and openvpn"
+  else
+    ansible-playbook -i inventory vpn.yml -b --user=root --tags "$1"
+fi

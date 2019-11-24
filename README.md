@@ -43,10 +43,29 @@ wireguard:
 
 ## Run
 
-Run the Ansible playbook:
+Run the Ansible playbook for WireGuard:
 
 ```bash
-sh run.sh
+sh run.sh wireguard
+```
+
+Run the Ansible playbook for OpenVPN:
+
+```bash
+sh run.sh openvpn
+```
+
+## Find IPs - OpenVPN
+
+Servers will have an interface called tun1. To find the server IP run:
+
+```bash
+ifconfig tun1 | grep 'inet' | cut -d: -f2 | awk '{print $2}'
+```
+
+Clients will have an interface called tun2. To find the client IP run:
+```bash
+ifconfig tun2 | grep 'inet' | cut -d: -f2 | awk '{print $2}'
 ```
 
 ## TODO

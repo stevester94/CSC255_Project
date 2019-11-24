@@ -1,0 +1,42 @@
+#Client
+
+client
+
+dev tun2
+proto {{ openvpn_server_proto }}
+
+remote {{ hostvars[openvpn_server]['ansible_host'] }} {{ hostvars[openvpn_server]['openvpn_server_port'] }}
+;remote my-server-2 {{ openvpn_server_port }}
+
+# Choose a random host from the remote
+# list for load-balancing.  Otherwise
+# try hosts in the order specified.
+;remote-random
+
+# Keep trying indefinitely to resolve the
+resolv-retry infinite
+
+# Most clients don't need to bind to
+# a specific local port number.
+nobind
+
+;user nobody
+;group nobody
+
+persist-key
+persist-tun
+
+ca {{ openvpn_server }}/ca.crt
+cert {{ openvpn_server }}/{{ inventory_hostname }}.crt
+key {{ openvpn_server }}/{{ inventory_hostname }}.key
+
+remote-cert-tls server
+
+tls-auth {{ openvpn_server }}/ta.key 1
+
+cipher AES-256-CBC
+
+#comp-lzo
+
+# Set log file verbosity.
+verb 3

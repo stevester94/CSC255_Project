@@ -1,0 +1,171 @@
+---
+- set_fact:
+    openvpn_tunnel_cidr: "{{ openvpn_tunnel_cidr | ipsubnet(subnet_submask, server_idx) }}"
+    # Make the port defined for this server available as a fact to other hosts
+    openvpn_server_port: "{{ openvpn_server_port }}"
+  vars:
+    server_idx: "{{ openvpn_servers.index(inventory_hostname) }}"
+    subnet_submask: "{{ openvpn_tunnel_cidr | ipaddr('prefix') + 4 }}"
+
+- name: Ensure OpenVPN Easy-RSA directory exists
+  file:
+    path: "{{ openvpn_easyrsa_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: 0750
+
+- name: Extract easy-rsa.tgz into openvpn_easyrsa_dir
+  unarchive:
+    src: https://github.com/OpenVPN/easy-rsa/releases/download/v3.0.6/EasyRSA-unix-v3.0.6.tgz
+    remote_src: yes
+    dest: "{{ openvpn_dir }}"
+
+- name: Move easy-rsa files
+  shell: "mv {{ openvpn_dir }}/EasyRSA-v3.0.6/* {{ openvpn_easyrsa_dir }}/"
+
+- name: Delete original easy-esa folder
+  shell: "rm -rf {{ openvpn_dir }}/EasyRSA-v3.0.6"
+
+- name: Initialise PKI
+  command: "./easyrsa init-pki"
+  args:
+    chdir: "{{ openvpn_easyrsa_dir }}"
+    creates: "{{ openvpn_easyrsa_dir }}/pki"
+  register: easyrsa_init
+  ignore_errors: yes
+
+- name: Build CA
+  shell: echo 'Easy-RSA CA' | ./easyrsa build-ca nopass
+  args:
+    chdir: "{{ openvpn_easyrsa_dir }}"
+    creates: "{{ openvpn_easyrsa_dir }}/pki/ca.crt"
+  ignore_errors: yes
+
+- name: Build OpenVPN server credentials
+  shell: "./easyrsa build-server-full {{ inventory_hostname }} nopass"
+  args:
+    chdir: "{{ openvpn_easyrsa_dir }}"
+    creates: "{{ openvpn_easyrsa_dir }}/pki/reqs/{{ inventory_hostname }}.req"
+  ignore_errors: yes
+
+- name: Prepare clients
+  shell: "./easyrsa build-client-full {{ item }} nopass"
+  args:
+    chdir: "{{ openvpn_easyrsa_dir }}"
+    creates: "{{ openvpn_easyrsa_dir }}/pki/reqs/{{ item }}.req"
+  with_items: "{{ openvpn_clients | difference([inventory_hostname]) }}"
+  ignore_errors: yes
+
+- name: Does DH exist?
+  stat:
+    path: "{{ openvpn_easyrsa_dir }}/pki/dh.pem"
+  register: dh
+
+- name: Generate DH
+  shell: "./easyrsa gen-dh"
+  args:
+    chdir: "{{ openvpn_easyrsa_dir }}"
+  when: dh.stat.islnk is not defined
+
+- name: Copy CA and DH from their remote sources to remote OpenVPN dir
+  copy:
+    remote_src: yes
+    src: "{{ openvpn_easyrsa_dir }}/pki/{{ item }}"
+    dest: "{{ openvpn_dir }}/"
+  with_items:
+    - dh.pem
+    - ca.crt
+
+- name: Does TA exist?
+  stat:
+    path: "{{ openvpn_dir }}/ta.key"
+  register: ta
+
+- name: Generate TA
+  shell: "openvpn --genkey --secret {{ openvpn_dir }}/ta.key"
+  when: ta.stat.islnk is not defined
+  notify: restart openvpn server
+
+- name: Copy server files to OpenVPN folder
+  copy:
+    remote_src: yes
+    src: "{{ openvpn_easyrsa_dir }}/pki/{{ item.dir }}/{{ inventory_hostname }}.{{ item.ext }}"
+    dest: "{{ openvpn_dir }}/"
+    mode: preserve
+  with_items: [{ dir: issued, ext: crt }, { dir: private, ext: key }]
+
+- name: Copy over server configuration
+  template:
+    src: server.conf.j2
+    dest: "{{ openvpn_dir }}/{{ inventory_hostname }}.conf"
+  notify: restart openvpn server
+
+- name: Static IP configs for named hosts
+  lineinfile:
+    create: yes
+    path: "{{ openvpn_dir }}/ccd/{{ item.1 }}"
+    regexp: "^ifconfig-push"
+    line: "ifconfig-push {{ openvpn_tunnel_cidr | ipaddr('network') | ipmath(item.0 + 2) }} {{ openvpn_tunnel_cidr | ipaddr('network') | ipmath(1) }}"
+  with_indexed_items: "{{ openvpn_clients | difference([inventory_hostname]) }}"
+  notify: restart openvpn server
+
+- name: Make client subnet reachable by server
+  lineinfile:
+    create: yes
+    path: "{{ openvpn_dir }}/ccd/{{ item }}"
+    regexp: "^iroute"
+    line: "iroute {{ remote_net }} {{ remote_mask }}"
+  vars:
+    remote_net: "{{ hostvars[item]['openvpn_intra_ipv4']['network'] }}"
+    remote_mask: "{{ hostvars[item]['openvpn_intra_ipv4']['netmask'] }}"
+  with_items: "{{ openvpn_clients | difference([inventory_hostname]) }}"
+  notify: restart openvpn server
+
+- name: Ensure local client certs dir exists
+  become: no
+  local_action:
+    module: file
+    path: "{{ openvpn_client_certs_dir }}/{{ inventory_hostname }}"
+    state: directory
+
+- name: Fetch client files
+  fetch:
+    src: "{{ openvpn_easyrsa_dir }}/pki/{{ item.0.dir }}/{{ item.1 }}.{{ item.0.ext }}"
+    dest: "{{ openvpn_client_certs_dir }}/{{ inventory_hostname }}/"
+    flat: yes
+  with_nested:
+    - [{ dir: issued, ext: crt }, { dir: private, ext: key }]
+    - "{{ openvpn_clients | difference([inventory_hostname]) }}"
+
+- name: Fetch remaining certificates
+  fetch:
+    src: "{{ item }}"
+    dest: "{{ openvpn_client_certs_dir }}/{{ inventory_hostname }}/"
+    flat: yes
+  with_items:
+    - "{{ openvpn_easyrsa_dir }}/pki/ca.crt"
+    - "{{ openvpn_dir }}/ta.key"
+
+- name: Setup IP Tables
+  shell: "iptables -A INPUT -i eth0 -m state --state NEW -p {{ openvpn_server_proto }} --dport {{ openvpn_server_port }} -j ACCEPT"
+- name: Setup IP Tables
+  shell: "iptables -A INPUT -i tun+ -j ACCEPT"
+- name: Setup IP Tables
+  shell: "iptables -A FORWARD -i tun+ -j ACCEPT"
+- name: Setup IP Tables
+  shell: "iptables -A FORWARD -i tun+ -o eth0 -m state --state RELATED,ESTABLISHED -j ACCEPT"
+- name: Setup IP Tables
+  shell: "iptables -A FORWARD -i eth0 -o tun+ -m state --state RELATED,ESTABLISHED -j ACCEPT"
+- name: Setup IP Tables
+  shell: "iptables -t nat -A POSTROUTING -s {{ openvpn_tunnel_cidr }} -o eth0 -j MASQUERADE"
+- name: Setup IP Tables
+  shell: "iptables -A OUTPUT -o tun+ -j ACCEPT"
+
+- name: Enable IP forwarding
+  sysctl:
+    name: net.ipv4.ip_forward
+    value: "1"
+    sysctl_set: yes
+
+- meta: flush_handlers

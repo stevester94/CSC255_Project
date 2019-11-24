@@ -1,0 +1,23 @@
+---
+- name: Create WireGuard Mesh
+  hosts: wireguard
+  remote_user: root
+  roles:
+    - role: wireguard_tunnel
+  tags:
+    - wireguard
+
+- name: Create OpenVPN Mesh
+  hosts:
+    - openvpn_servers
+    - openvpn_clients
+  remote_user: root
+  become: yes
+  roles:
+    - role: openvpn_tunnel
+      vars:
+        openvpn_servers: "{{ groups['openvpn_servers'] }}"
+        openvpn_clients: "{{ groups['openvpn_clients'] }}"
+        openvpn_server_proto: "udp"
+  tags:
+    - openvpn
