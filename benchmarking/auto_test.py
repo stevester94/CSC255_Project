@@ -22,11 +22,11 @@ pp = pprint.PrettyPrinter()
 
 
 TEST_PORT = 9001
-TEST_DURATION_SECS = 15
+TEST_DURATION_SECS = 120
 METRICS_INTERVAL_SECS = 1
 
-PROTOCOLS = ["tcp", "udp"]
-# PROTOCOLS = ["udp"]
+# PROTOCOLS = ["tcp", "udp"]
+PROTOCOLS = ["udp"]
 
 WIREGUARD_SERVER_IP = "10.9.0.1"
 OPENVPN_SERVER_IP   = "10.8.0.1"
@@ -49,83 +49,115 @@ if not ONE_OFF:
     ################
     # Local Cases
     ################
-    {
-        "SERVER_SSH_USERNAME" : "steven",
-        "CLIENT_SSH_USERNAME" : "steven",
-        "SERVER_SSH_IP" : "127.0.0.1",
-        "SERVER_TEST_IP" : "127.0.0.1",
-        "CLIENT_SSH_IP" : "127.0.0.1",
-        "RESULTS_FILE_PREFIX" : "local_regular",
-        "NIC_NAME" : "lo",
-        "METRICS_BIN_PATH" : LOCAL_METRIC_BIN_PATH,
-    },
-
+    # {
+    #     "SERVER_SSH_USERNAME" : "steven",
+    #     "CLIENT_SSH_USERNAME" : "steven",
+    #     "SERVER_SSH_IP" : "127.0.0.1",
+    #     "SERVER_TEST_IP" : "127.0.0.1",
+    #     "CLIENT_SSH_IP" : "127.0.0.1",
+    #     "RESULTS_FILE_PREFIX" : "local_regular",
+    #     "NIC_NAME" : "lo",
+    #     "METRICS_BIN_PATH" : LOCAL_METRIC_BIN_PATH,
+    # },
     ################
     # AWS Long Haul Cases
     ################
+    # {
+    #     "SERVER_SSH_USERNAME" : "ubuntu",
+    #     "CLIENT_SSH_USERNAME" : "ubuntu",
+    #     "SERVER_SSH_IP" : "aws_singapore.ssmackey.com",
+    #     "SERVER_TEST_IP" : "10.9.0.200",
+    #     "CLIENT_SSH_IP" : "aws_oregon.ssmackey.com",
+    #     "RESULTS_FILE_PREFIX" : "aws_longhaul_wireguard",
+    #     "NIC_NAME" : "eth0",
+    #     "METRICS_BIN_PATH" : AWS_METRIC_BIN_PATH,
+    # },
+    # {
+    #     "SERVER_SSH_USERNAME" : "ubuntu",
+    #     "CLIENT_SSH_USERNAME" : "ubuntu",
+    #     "SERVER_SSH_IP" : "aws_singapore.ssmackey.com",
+    #     "SERVER_TEST_IP" : "aws_singapore.ssmackey.com",
+    #     "CLIENT_SSH_IP" : "aws_oregon.ssmackey.com",
+    #     "RESULTS_FILE_PREFIX" : "aws_longhaul_regular",
+    #     "NIC_NAME" : "eth0",
+    #     "METRICS_BIN_PATH" : AWS_METRIC_BIN_PATH,
+    # },
+    # {
+    #     "SERVER_SSH_USERNAME" : "ubuntu",
+    #     "CLIENT_SSH_USERNAME" : "ubuntu",
+    #     "SERVER_SSH_IP" : "aws_singapore.ssmackey.com",
+    #     "SERVER_TEST_IP" : OPENVPN_SERVER_IP,
+    #     "CLIENT_SSH_IP" : "aws_oregon.ssmackey.com",
+    #     "RESULTS_FILE_PREFIX" : "aws_longhaul_openvpn",
+    #     "NIC_NAME" : "eth0",
+    #     "METRICS_BIN_PATH" : AWS_METRIC_BIN_PATH,
+    # },
+    ###################
+    # AWS short 
+    ###################
+    # {
+    #     "SERVER_SSH_USERNAME" : "ubuntu",
+    #     "CLIENT_SSH_USERNAME" : "ubuntu",
+    #     "SERVER_SSH_IP" : "aws_oregon_short_1.ssmackey.com",
+    #     "SERVER_TEST_IP" : "10.9.0.101",
+    #     "CLIENT_SSH_IP" : "aws_oregon_short_2.ssmackey.com",
+    #     "RESULTS_FILE_PREFIX" : "aws_short_wireguard",
+    #     "NIC_NAME" : "eth0",
+    #     "METRICS_BIN_PATH" : AWS_METRIC_BIN_PATH,
+    # },
+    # {
+    #     "SERVER_SSH_USERNAME" : "ubuntu",
+    #     "CLIENT_SSH_USERNAME" : "ubuntu",
+    #     "SERVER_SSH_IP" : "aws_oregon_short_1.ssmackey.com",
+    #     "SERVER_TEST_IP" : "aws_oregon_short_1.ssmackey.com",
+    #     "CLIENT_SSH_IP" : "aws_oregon_short_2.ssmackey.com",
+    #     "RESULTS_FILE_PREFIX" : "aws_short_regular",
+    #     "NIC_NAME" : "eth0",
+    #     "METRICS_BIN_PATH" : AWS_METRIC_BIN_PATH,
+    # },
     {
         "SERVER_SSH_USERNAME" : "ubuntu",
         "CLIENT_SSH_USERNAME" : "ubuntu",
-        "SERVER_SSH_IP" : "aws_singapore.ssmackey.com",
-        "SERVER_TEST_IP" : "10.9.0.200",
-        "CLIENT_SSH_IP" : "aws_oregon.ssmackey.com",
-        "RESULTS_FILE_PREFIX" : "aws_longhaul_wireguard",
-        "NIC_NAME" : "eth0",
-        "METRICS_BIN_PATH" : AWS_METRIC_BIN_PATH,
-    },
-    {
-        "SERVER_SSH_USERNAME" : "ubuntu",
-        "CLIENT_SSH_USERNAME" : "ubuntu",
-        "SERVER_SSH_IP" : "aws_singapore.ssmackey.com",
-        "SERVER_TEST_IP" : "aws_singapore.ssmackey.com",
-        "CLIENT_SSH_IP" : "aws_oregon.ssmackey.com",
-        "RESULTS_FILE_PREFIX" : "aws_longhaul_regular",
-        "NIC_NAME" : "eth0",
-        "METRICS_BIN_PATH" : AWS_METRIC_BIN_PATH,
-    },
-    {
-        "SERVER_SSH_USERNAME" : "ubuntu",
-        "CLIENT_SSH_USERNAME" : "ubuntu",
-        "SERVER_SSH_IP" : "aws_singapore.ssmackey.com",
+        "SERVER_SSH_IP" : "aws_oregon_short_1.ssmackey.com",
         "SERVER_TEST_IP" : OPENVPN_SERVER_IP,
-        "CLIENT_SSH_IP" : "aws_oregon.ssmackey.com",
-        "RESULTS_FILE_PREFIX" : "aws_longhaul_openvpn",
+        "CLIENT_SSH_IP" : "aws_oregon_short_2.ssmackey.com",
+        "RESULTS_FILE_PREFIX" : "aws_short_openvpn",
         "NIC_NAME" : "eth0",
         "METRICS_BIN_PATH" : AWS_METRIC_BIN_PATH,
     },
     ################
     # VM Cases
     ################
-    {
-        "SERVER_SSH_USERNAME" : "steven",
-        "CLIENT_SSH_USERNAME" : "steven",
-        "SERVER_SSH_IP" : "192.168.86.100",
-        "SERVER_TEST_IP" : WIREGUARD_SERVER_IP,
-        "CLIENT_SSH_IP" : "192.168.86.200",
-        "RESULTS_FILE_PREFIX" : "vm_wireguard",
-        "NIC_NAME" : "ens34",
-        "METRICS_BIN_PATH" : VM_METRIC_BIN_PATH,
-    },
-    {
-        "SERVER_SSH_USERNAME" : "steven",
-        "CLIENT_SSH_USERNAME" : "steven",
-        "SERVER_SSH_IP" : "192.168.86.100",
-        "SERVER_TEST_IP" : "192.168.86.100",
-        "CLIENT_SSH_IP" : "192.168.86.200",
-        "RESULTS_FILE_PREFIX" : "vm_regular",
-        "NIC_NAME" : "ens34",
-        "METRICS_BIN_PATH" : VM_METRIC_BIN_PATH,
-    },
-    {
-        "SERVER_SSH_USERNAME" : "steven",
-        "CLIENT_SSH_USERNAME" : "steven",
-        "SERVER_SSH_IP" : "192.168.86.100",
-        "SERVER_TEST_IP" : OPENVPN_SERVER_IP,
-        "CLIENT_SSH_IP" : "192.168.86.200",
-        "RESULTS_FILE_PREFIX" : "vm_openvpn",
-        "NIC_NAME" : "ens34",
-        "METRICS_BIN_PATH" : VM_METRIC_BIN_PATH,
-    },
+    # {
+    #     "SERVER_SSH_USERNAME" : "steven",
+    #     "CLIENT_SSH_USERNAME" : "steven",
+    #     "SERVER_SSH_IP" : "192.168.86.100",
+    #     "SERVER_TEST_IP" : WIREGUARD_SERVER_IP,
+    #     "CLIENT_SSH_IP" : "192.168.86.200",
+    #     "RESULTS_FILE_PREFIX" : "vm_wireguard",
+    #     "NIC_NAME" : "ens34",
+    #     "METRICS_BIN_PATH" : VM_METRIC_BIN_PATH,
+    # },
+    # {
+    #     "SERVER_SSH_USERNAME" : "steven",
+    #     "CLIENT_SSH_USERNAME" : "steven",
+    #     "SERVER_SSH_IP" : "192.168.86.100",
+    #     "SERVER_TEST_IP" : "192.168.86.100",
+    #     "CLIENT_SSH_IP" : "192.168.86.200",
+    #     "RESULTS_FILE_PREFIX" : "vm_regular",
+    #     "NIC_NAME" : "ens34",
+    #     "METRICS_BIN_PATH" : VM_METRIC_BIN_PATH,
+    # },
+    # {
+    #     "SERVER_SSH_USERNAME" : "steven",
+    #     "CLIENT_SSH_USERNAME" : "steven",
+    #     "SERVER_SSH_IP" : "192.168.86.100",
+    #     "SERVER_TEST_IP" : OPENVPN_SERVER_IP,
+    #     "CLIENT_SSH_IP" : "192.168.86.200",
+    #     "RESULTS_FILE_PREFIX" : "vm_openvpn",
+    #     "NIC_NAME" : "ens34",
+    #     "METRICS_BIN_PATH" : VM_METRIC_BIN_PATH,
+    # },
     ]
 else:
     TEST_DURATION_SECS = 15
@@ -323,14 +355,22 @@ for case in FINAL_CASES:
             time.sleep(5)
             continue
 
+        try:
+            case_summary = {}
+            case_summary["case name"] = case["CASE_NAME"]
+            case_summary["num retries"] = num_retries
+            case_summary["client"] = results_processor.get_summary("results/"+case["CLIENT_RESULTS_NAME"])
+            case_summary["server"] = results_processor.get_summary("results/"+case["SERVER_RESULTS_NAME"])
 
-        case_summary = {}
-        case_summary["case name"] = case["CASE_NAME"]
-        case_summary["num retries"] = num_retries
-        case_summary["client"] = results_processor.get_summary("results/"+case["CLIENT_RESULTS_NAME"])
-        case_summary["server"] = results_processor.get_summary("results/"+case["SERVER_RESULTS_NAME"])
+            summaries.append(case_summary)
+        except:
+            print("Failure detected parsing results, tring again")
+            server_client.close()
+            client_client.close()
+            num_retries += 1
+            time.sleep(5)
+            continue
 
-        summaries.append(case_summary)
 
         print("Closing SSH connections")
         server_client.close()
@@ -343,8 +383,8 @@ print("Completed {} cases, should have {} results files".format(len(FINAL_CASES)
 
 pp.pprint(summaries)
 
-with open("results/all_results.json", "w") as f:
-    f.write(json.dumps(summaries, indent=4))
+# with open("results/all_results.json", "w") as f:
+#     f.write(json.dumps(summaries, indent=4))
 
-print("Final written")
+# print("Final written")
 print("All done")
