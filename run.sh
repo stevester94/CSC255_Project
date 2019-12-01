@@ -12,7 +12,7 @@ export ANSIBLE_HOST_KEY_CHECKING=false
 
 if [ -z "$1" ]
   then
-    echo "No argument supplied. Please pick between wiregiard and openvpn"
+    echo "No argument supplied. Please pick between wireguard and openvpn"
   else
     ansible-playbook -i inventory vpn.yml -b --user=root --tags "$1"
 fi
