@@ -8,3 +8,8 @@
   pip:
     name: psutil
     executable: pip3
+
+- name: Install Benchmarking utils - iperf3
+  apt:
+    name: iperf3
+    state: present
