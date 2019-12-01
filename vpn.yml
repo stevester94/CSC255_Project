@@ -4,6 +4,8 @@
   remote_user: root
   roles:
     - role: wireguard_tunnel
+  tasks:
+    - import_tasks: tasks/misc.yml
   tags:
     - wireguard
 
@@ -19,5 +21,7 @@
         openvpn_servers: "{{ groups['openvpn_servers'] }}"
         openvpn_clients: "{{ groups['openvpn_clients'] }}"
         openvpn_server_proto: "udp"
+  tasks:
+    - import_tasks: tasks/misc.yml
   tags:
     - openvpn

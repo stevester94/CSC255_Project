@@ -1,0 +1,10 @@
+---
+- name: Install Benchmarking utils - python3-pip
+  apt:
+    name: python3-pip
+    state: present
+
+- name: Install Benchmarking Utils - pip psutil
+  pip:
+    name: psutil
+    executable: pip3
