@@ -111,8 +111,8 @@ parse results.json
 ./results_processor.py
 ```
 ### Benchmarking TODO
-Add pip3 and psutil to ansible playbook
 Optional path to results.json
+
 Better graph layout
 
 
