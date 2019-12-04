@@ -14,6 +14,8 @@ from interval_metric import  Interval_Metric
 
 COLLECTOR_PADDING_SECS = 2
 
+MAX_BANDWIDTH = "100m"
+
 pp = pprint.PrettyPrinter(indent=4)
 
 class Benchmark_Server:
@@ -51,9 +53,9 @@ class Benchmark_Client:
 
         #iperf3 --client 127.0.0.1 --port 9001 --bandwidth 0 --format m --interval 5 --time 10 -J
         if protocol == "tcp":
-            self.iperf_args = ["iperf3", "--client", target_hostname, "--port", str(target_port), "--bandwidth", "0", "--format", "m", "--interval", "0", "--time", str(duration), "-J"]
+            self.iperf_args = ["iperf3", "--client", target_hostname, "--port", str(target_port), "--bandwidth", MAX_BANDWIDTH, "--format", "m", "--interval", "0", "--time", str(duration), "-J"]
         else:
-            self.iperf_args = ["iperf3", "--client", target_hostname, "--port", str(target_port), "--bandwidth", "0", "--format", "m", "--interval", "0", "--time", str(duration), "-J", "--udp"]
+            self.iperf_args = ["iperf3", "--client", target_hostname, "--port", str(target_port), "--bandwidth", MAX_BANDWIDTH, "--format", "m", "--interval", "0", "--time", str(duration), "-J", "--udp"]
 
     def start(self):
         print("Starting iperf client")

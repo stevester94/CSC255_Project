@@ -22,11 +22,12 @@ pp = pprint.PrettyPrinter()
 
 
 TEST_PORT = 9001
-TEST_DURATION_SECS = 120
+TEST_DURATION_SECS = 60
 METRICS_INTERVAL_SECS = 1
 
 # PROTOCOLS = ["tcp", "udp"]
-PROTOCOLS = ["udp"]
+# PROTOCOLS = ["udp"]
+PROTOCOLS = ["tcp"]
 
 WIREGUARD_SERVER_IP = "10.9.0.1"
 OPENVPN_SERVER_IP   = "10.8.0.1"
@@ -101,7 +102,7 @@ if not ONE_OFF:
     #     "SERVER_SSH_IP" : "aws_oregon_short_1.ssmackey.com",
     #     "SERVER_TEST_IP" : "10.9.0.101",
     #     "CLIENT_SSH_IP" : "aws_oregon_short_2.ssmackey.com",
-    #     "RESULTS_FILE_PREFIX" : "aws_short_wireguard",
+    #     "RESULTS_FILE_PREFIX" : "aws_short_wireguard_GIMP",
     #     "NIC_NAME" : "eth0",
     #     "METRICS_BIN_PATH" : AWS_METRIC_BIN_PATH,
     # },
@@ -111,53 +112,53 @@ if not ONE_OFF:
     #     "SERVER_SSH_IP" : "aws_oregon_short_1.ssmackey.com",
     #     "SERVER_TEST_IP" : "aws_oregon_short_1.ssmackey.com",
     #     "CLIENT_SSH_IP" : "aws_oregon_short_2.ssmackey.com",
-    #     "RESULTS_FILE_PREFIX" : "aws_short_regular",
+    #     "RESULTS_FILE_PREFIX" : "aws_short_regular_GIMP",
     #     "NIC_NAME" : "eth0",
     #     "METRICS_BIN_PATH" : AWS_METRIC_BIN_PATH,
     # },
-    {
-        "SERVER_SSH_USERNAME" : "ubuntu",
-        "CLIENT_SSH_USERNAME" : "ubuntu",
-        "SERVER_SSH_IP" : "aws_oregon_short_1.ssmackey.com",
-        "SERVER_TEST_IP" : OPENVPN_SERVER_IP,
-        "CLIENT_SSH_IP" : "aws_oregon_short_2.ssmackey.com",
-        "RESULTS_FILE_PREFIX" : "aws_short_openvpn",
-        "NIC_NAME" : "eth0",
-        "METRICS_BIN_PATH" : AWS_METRIC_BIN_PATH,
-    },
+    # {
+    #     "SERVER_SSH_USERNAME" : "ubuntu",
+    #     "CLIENT_SSH_USERNAME" : "ubuntu",
+    #     "SERVER_SSH_IP" : "aws_oregon_short_1.ssmackey.com",
+    #     "SERVER_TEST_IP" : OPENVPN_SERVER_IP,
+    #     "CLIENT_SSH_IP" : "aws_oregon_short_2.ssmackey.com",
+    #     "RESULTS_FILE_PREFIX" : "aws_short_openvpn_GIMP",
+    #     "NIC_NAME" : "eth0",
+    #     "METRICS_BIN_PATH" : AWS_METRIC_BIN_PATH,
+    # },
     ################
     # VM Cases
     ################
-    # {
-    #     "SERVER_SSH_USERNAME" : "steven",
-    #     "CLIENT_SSH_USERNAME" : "steven",
-    #     "SERVER_SSH_IP" : "192.168.86.100",
-    #     "SERVER_TEST_IP" : WIREGUARD_SERVER_IP,
-    #     "CLIENT_SSH_IP" : "192.168.86.200",
-    #     "RESULTS_FILE_PREFIX" : "vm_wireguard",
-    #     "NIC_NAME" : "ens34",
-    #     "METRICS_BIN_PATH" : VM_METRIC_BIN_PATH,
-    # },
-    # {
-    #     "SERVER_SSH_USERNAME" : "steven",
-    #     "CLIENT_SSH_USERNAME" : "steven",
-    #     "SERVER_SSH_IP" : "192.168.86.100",
-    #     "SERVER_TEST_IP" : "192.168.86.100",
-    #     "CLIENT_SSH_IP" : "192.168.86.200",
-    #     "RESULTS_FILE_PREFIX" : "vm_regular",
-    #     "NIC_NAME" : "ens34",
-    #     "METRICS_BIN_PATH" : VM_METRIC_BIN_PATH,
-    # },
-    # {
-    #     "SERVER_SSH_USERNAME" : "steven",
-    #     "CLIENT_SSH_USERNAME" : "steven",
-    #     "SERVER_SSH_IP" : "192.168.86.100",
-    #     "SERVER_TEST_IP" : OPENVPN_SERVER_IP,
-    #     "CLIENT_SSH_IP" : "192.168.86.200",
-    #     "RESULTS_FILE_PREFIX" : "vm_openvpn",
-    #     "NIC_NAME" : "ens34",
-    #     "METRICS_BIN_PATH" : VM_METRIC_BIN_PATH,
-    # },
+    {
+        "SERVER_SSH_USERNAME" : "steven",
+        "CLIENT_SSH_USERNAME" : "steven",
+        "SERVER_SSH_IP" : "192.168.86.100",
+        "SERVER_TEST_IP" : WIREGUARD_SERVER_IP,
+        "CLIENT_SSH_IP" : "192.168.86.200",
+        "RESULTS_FILE_PREFIX" : "vm_wireguard_rate_100m",
+        "NIC_NAME" : "ens34",
+        "METRICS_BIN_PATH" : VM_METRIC_BIN_PATH,
+    },
+    {
+        "SERVER_SSH_USERNAME" : "steven",
+        "CLIENT_SSH_USERNAME" : "steven",
+        "SERVER_SSH_IP" : "192.168.86.100",
+        "SERVER_TEST_IP" : "192.168.86.100",
+        "CLIENT_SSH_IP" : "192.168.86.200",
+        "RESULTS_FILE_PREFIX" : "vm_regular_rate_100m",
+        "NIC_NAME" : "ens34",
+        "METRICS_BIN_PATH" : VM_METRIC_BIN_PATH,
+    },
+    {
+        "SERVER_SSH_USERNAME" : "steven",
+        "CLIENT_SSH_USERNAME" : "steven",
+        "SERVER_SSH_IP" : "192.168.86.100",
+        "SERVER_TEST_IP" : OPENVPN_SERVER_IP,
+        "CLIENT_SSH_IP" : "192.168.86.200",
+        "RESULTS_FILE_PREFIX" : "vm_openvpn_rate_100m",
+        "NIC_NAME" : "ens34",
+        "METRICS_BIN_PATH" : VM_METRIC_BIN_PATH,
+    },
     ]
 else:
     TEST_DURATION_SECS = 15
