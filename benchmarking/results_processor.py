@@ -51,8 +51,8 @@ Plot_Target = namedtuple("Plot_Target", plot_target_fields)
 
 # Global plot index, set back to 1 if you're making a new window
 g_plot_index = 1
-g_plot_nrows = 3 # Don't change this
-g_plot_ncols = 3 # Don't change this
+g_plot_nrows = 1 # Don't change this
+g_plot_ncols = 2 # Don't change this
 
 # where plot_targets is a list of Plot_Target
 # Only builds them, does not execute plt.show(), so that addtional config may be done
@@ -105,7 +105,7 @@ def build_summary_table_common_data(metrics_dict, metrics):
     rowData = [
         metrics_dict["protocol"],
         metrics_dict["role"],
-        str(int(get_single_metric_average("avg_cpu_utilization", metrics)))+"%",
+        (int(get_single_metric_average("avg_cpu_utilization", metrics))),
         int(get_single_metric_average("context_switches_per_sec", metrics)),
         int(get_single_metric_average("interrupts_per_sec", metrics)),
         int(get_single_metric_average("soft_interrupts_per_sec", metrics)),
@@ -137,9 +137,9 @@ def build_client_summary_data(metrics_dict, metrics):
     send_overhead_percent = send_overhead_percent if send_overhead_percent > 0.0 else 0.0
 
     client_row_data = [
-        metrics_dict["client"]["avg_rtt_ms"],
-        "{0:.2f}%".format(send_overhead_percent),
-        "{0:.2f} MB/sec".format(metrics_dict["client"]["bytes_per_second"] / BYTES_PER_MBYTE),
+        round(metrics_dict["client"]["avg_rtt_ms"], 2),
+        round(send_overhead_percent, 2),
+        round(metrics_dict["client"]["bytes_per_second"] / BYTES_PER_MBYTE, 2),
     ]
 
     return (common_row_labels+client_row_labels, common_row_data+client_row_data)
@@ -166,8 +166,8 @@ def build_server_summary_data(metrics_dict, metrics):
     received_overhead_percent = received_overhead_percent if received_overhead_percent > 0.0 else 0.00
 
     server_row_data = [
-        "{0:.2f}%".format(received_overhead_percent),
-        "{0:.2f} MB/sec".format(iperf_avg_bytes_rcv_per_second / BYTES_PER_MBYTE),
+        round(received_overhead_percent, 2),
+        round(iperf_avg_bytes_rcv_per_second / BYTES_PER_MBYTE, 2),
     ]
 
     return (common_row_labels+server_row_labels, common_row_data+server_row_data)
@@ -231,14 +231,16 @@ if __name__ == "__main__":
     plt.figure().canvas.set_window_title('General '+file_path)
 
     # Plot_Target(title="timestamp", y_values=get_single_metric("timestamp", metrics), x_values=interval_index, x_axis_label="Interval Index", y_axis_label="THE_Y"))
+    build_plot(Plot_Target(title="per_cpu_utilization", y_values=get_single_metric("per_cpu_utilization", metrics), x_values=interval_index, x_axis_label="Interval Index", y_axis_label="Utilization %"))
+    g_plot_index += 1
     build_plot(Plot_Target(title="avg_cpu_utilization", y_values=get_single_metric("avg_cpu_utilization", metrics), x_values=interval_index, x_axis_label="Interval Index", y_axis_label="Utilization %"))
     g_plot_index += 1
-    build_plot(Plot_Target(title="context_switches_per_sec", y_values=get_single_metric("context_switches_per_sec", metrics), x_values=interval_index, x_axis_label="Interval Index", y_axis_label="Context Switches/sec"))
-    g_plot_index += 1
-    build_plot(Plot_Target(title="interrupts_per_sec", y_values=get_single_metric("interrupts_per_sec", metrics), x_values=interval_index, x_axis_label="Interval Index", y_axis_label="Interrupts/sec"))
-    g_plot_index += 1
-    build_plot(Plot_Target(title="soft_interrupts_per_sec", y_values=get_single_metric("soft_interrupts_per_sec", metrics), x_values=interval_index, x_axis_label="Interval Index", y_axis_label="Soft Interrupts/sec"))
-    g_plot_index += 1
+    # build_plot(Plot_Target(title="context_switches_per_sec", y_values=get_single_metric("context_switches_per_sec", metrics), x_values=interval_index, x_axis_label="Interval Index", y_axis_label="Context Switches/sec"))
+    # g_plot_index += 1
+    # build_plot(Plot_Target(title="interrupts_per_sec", y_values=get_single_metric("interrupts_per_sec", metrics), x_values=interval_index, x_axis_label="Interval Index", y_axis_label="Interrupts/sec"))
+    # g_plot_index += 1
+    # build_plot(Plot_Target(title="soft_interrupts_per_sec", y_values=get_single_metric("soft_interrupts_per_sec", metrics), x_values=interval_index, x_axis_label="Interval Index", y_axis_label="Soft Interrupts/sec"))
+    # g_plot_index += 1
 
     ################## 
     # Special Cases
@@ -247,43 +249,43 @@ if __name__ == "__main__":
     # For either client or server, we will plot the relevant iperf metrics on top of the system wide.
     # For these next two, the orange is the avg reported by iperf, and the green is the average of the system wide collection
     # In theory, they should be pretty damn close, with only overhead being the discrepancy
-    build_plot(Plot_Target(title="bytes_sent_per_sec", y_values=get_single_metric("bytes_sent_per_sec", metrics), x_values=interval_index, x_axis_label="Interval Index", y_axis_label="bytes/sec"))
-    if is_client:
-        x_values = interval_index
+    # build_plot(Plot_Target(title="bytes_sent_per_sec", y_values=get_single_metric("bytes_sent_per_sec", metrics), x_values=interval_index, x_axis_label="Interval Index", y_axis_label="bytes/sec"))
+    # if is_client:
+    #     x_values = interval_index
 
-        # Iperf avg
-        y_values = [metrics_dict["client"]["bytes_per_second"]] * len(interval_index)
-        plt.subplot(g_plot_nrows, g_plot_ncols, g_plot_index) # Plot indices begin at 1
-        plt.plot(x_values, y_values)
+    #     # Iperf avg
+    #     y_values = [metrics_dict["client"]["bytes_per_second"]] * len(interval_index)
+    #     plt.subplot(g_plot_nrows, g_plot_ncols, g_plot_index) # Plot indices begin at 1
+    #     plt.plot(x_values, y_values)
 
-        # System avg
-        y_values = [sum(get_single_metric("bytes_sent_per_sec", metrics)) / len(get_single_metric("bytes_sent_per_sec", metrics))]*len(interval_index)
-        plt.subplot(g_plot_nrows, g_plot_ncols, g_plot_index) # Plot indices begin at 1
-        plt.plot(x_values, y_values)
+    #     # System avg
+    #     y_values = [sum(get_single_metric("bytes_sent_per_sec", metrics)) / len(get_single_metric("bytes_sent_per_sec", metrics))]*len(interval_index)
+    #     plt.subplot(g_plot_nrows, g_plot_ncols, g_plot_index) # Plot indices begin at 1
+    #     plt.plot(x_values, y_values)
 
 
-    g_plot_index += 1
+    # g_plot_index += 1
 
-    build_plot(Plot_Target(title="bytes_received_per_sec", y_values=get_single_metric("bytes_received_per_sec", metrics), x_values=interval_index, x_axis_label="Interval Index", y_axis_label="bytes/sec"))
-    if not is_client:
-        x_values = interval_index
+    # build_plot(Plot_Target(title="bytes_received_per_sec", y_values=get_single_metric("bytes_received_per_sec", metrics), x_values=interval_index, x_axis_label="Interval Index", y_axis_label="bytes/sec"))
+    # if not is_client:
+    #     x_values = interval_index
 
-        # Iperf avg
-        y_values = [metrics_dict["server"]["bytes_per_second"]] * len(interval_index)
-        plt.subplot(g_plot_nrows, g_plot_ncols, g_plot_index) # Plot indices begin at 1
-        plt.plot(x_values, y_values)
+    #     # Iperf avg
+    #     y_values = [metrics_dict["server"]["bytes_per_second"]] * len(interval_index)
+    #     plt.subplot(g_plot_nrows, g_plot_ncols, g_plot_index) # Plot indices begin at 1
+    #     plt.plot(x_values, y_values)
 
-        # System avg
-        y_values = [sum(get_single_metric("bytes_received_per_sec", metrics)) / len(interval_index)] * len(interval_index)
-        plt.subplot(g_plot_nrows, g_plot_ncols, g_plot_index) # Plot indices begin at 1
-        plt.plot(x_values, y_values)
-    g_plot_index += 1
+    #     # System avg
+    #     y_values = [sum(get_single_metric("bytes_received_per_sec", metrics)) / len(interval_index)] * len(interval_index)
+    #     plt.subplot(g_plot_nrows, g_plot_ncols, g_plot_index) # Plot indices begin at 1
+    #     plt.plot(x_values, y_values)
+    # g_plot_index += 1
 
     plt.show()
 
 
-    plt.figure().canvas.set_window_title('Summary '+file_path)
-    if is_client:
-        build_client_summary_table(metrics_dict, metrics)
-    else:
-        build_server_summary_table(metrics_dict, metrics)
+    # plt.figure().canvas.set_window_title('Summary '+file_path)
+    # if is_client:
+    #     build_client_summary_table(metrics_dict, metrics)
+    # else:
+    #     build_server_summary_table(metrics_dict, metrics)
