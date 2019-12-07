@@ -52,7 +52,7 @@ Plot_Target = namedtuple("Plot_Target", plot_target_fields)
 # Global plot index, set back to 1 if you're making a new window
 g_plot_index = 1
 g_plot_nrows = 1 # Don't change this
-g_plot_ncols = 2 # Don't change this
+g_plot_ncols = 1 # Don't change this
 
 # where plot_targets is a list of Plot_Target
 # Only builds them, does not execute plt.show(), so that addtional config may be done
@@ -113,8 +113,13 @@ def build_summary_table_common_data(metrics_dict, metrics):
         "{0:.2f} MB/sec".format(get_single_metric_average("bytes_sent_per_sec", metrics) / BYTES_PER_MBYTE),
         "{0:.2f} MB/sec".format(get_single_metric_average("bytes_received_per_sec", metrics) / BYTES_PER_MBYTE),
         metrics_dict["target_hostname"],
-        metrics_dict["pid_metrics"]
     ]
+
+    # Special case for pid_metrics. Such spaghetti
+    try:
+        rowData.append(metrics_dict["pid_metrics"])
+    except:
+        rowData.append(None)
 
     return (rowLabels, rowData)
 
@@ -230,13 +235,13 @@ if __name__ == "__main__":
     #######################
     # Build the plots 
     #######################
-    plt.figure().canvas.set_window_title('General '+file_path)
+    # plt.figure().canvas.set_window_title('General '+file_path)
 
     # Plot_Target(title="timestamp", y_values=get_single_metric("timestamp", metrics), x_values=interval_index, x_axis_label="Interval Index", y_axis_label="THE_Y"))
     build_plot(Plot_Target(title="per_cpu_utilization", y_values=get_single_metric("per_cpu_utilization", metrics), x_values=interval_index, x_axis_label="Interval Index", y_axis_label="Utilization %"))
-    g_plot_index += 1
+    plt.savefig('per_cpu_utilization.png', dpi=300)
     build_plot(Plot_Target(title="avg_cpu_utilization", y_values=get_single_metric("avg_cpu_utilization", metrics), x_values=interval_index, x_axis_label="Interval Index", y_axis_label="Utilization %"))
-    g_plot_index += 1
+    plt.savefig('avg_cpu_utilization.png', dpi=300)
     # build_plot(Plot_Target(title="context_switches_per_sec", y_values=get_single_metric("context_switches_per_sec", metrics), x_values=interval_index, x_axis_label="Interval Index", y_axis_label="Context Switches/sec"))
     # g_plot_index += 1
     # build_plot(Plot_Target(title="interrupts_per_sec", y_values=get_single_metric("interrupts_per_sec", metrics), x_values=interval_index, x_axis_label="Interval Index", y_axis_label="Interrupts/sec"))
@@ -251,7 +256,8 @@ if __name__ == "__main__":
     # For either client or server, we will plot the relevant iperf metrics on top of the system wide.
     # For these next two, the orange is the avg reported by iperf, and the green is the average of the system wide collection
     # In theory, they should be pretty damn close, with only overhead being the discrepancy
-    # build_plot(Plot_Target(title="bytes_sent_per_sec", y_values=get_single_metric("bytes_sent_per_sec", metrics), x_values=interval_index, x_axis_label="Interval Index", y_axis_label="bytes/sec"))
+    build_plot(Plot_Target(title="bytes_sent_per_sec", y_values=get_single_metric("bytes_sent_per_sec", metrics), x_values=interval_index, x_axis_label="Interval Index", y_axis_label="bytes/sec"))
+    plt.savefig('bytes_sent_per_sec.png', dpi=300)
     # if is_client:
     #     x_values = interval_index
 
@@ -283,7 +289,7 @@ if __name__ == "__main__":
     #     plt.plot(x_values, y_values)
     # g_plot_index += 1
 
-    plt.show()
+    # plt.show()
 
 
     # plt.figure().canvas.set_window_title('Summary '+file_path)

@@ -25,9 +25,9 @@ TEST_PORT = 9001
 TEST_DURATION_SECS = 60
 METRICS_INTERVAL_SECS = 1
 
-# PROTOCOLS = ["tcp", "udp"]
+PROTOCOLS = ["tcp", "udp"]
 # PROTOCOLS = ["udp"]
-PROTOCOLS = ["tcp"]
+# PROTOCOLS = ["tcp"]
 
 WIREGUARD_SERVER_IP = "10.9.0.1"
 OPENVPN_SERVER_IP   = "10.8.0.1"
@@ -135,7 +135,7 @@ if not ONE_OFF:
         "SERVER_SSH_IP" : "192.168.86.100",
         "SERVER_TEST_IP" : WIREGUARD_SERVER_IP,
         "CLIENT_SSH_IP" : "192.168.86.200",
-        "RESULTS_FILE_PREFIX" : "vm_wireguard",
+        "RESULTS_FILE_PREFIX" : "vm_one_core_wireguard",
         "NIC_NAME" : "ens34",
         "METRICS_BIN_PATH" : VM_METRIC_BIN_PATH,
     },
@@ -145,7 +145,7 @@ if not ONE_OFF:
         "SERVER_SSH_IP" : "192.168.86.100",
         "SERVER_TEST_IP" : "192.168.86.100",
         "CLIENT_SSH_IP" : "192.168.86.200",
-        "RESULTS_FILE_PREFIX" : "vm_regular",
+        "RESULTS_FILE_PREFIX" : "vm_one_core_regular",
         "NIC_NAME" : "ens34",
         "METRICS_BIN_PATH" : VM_METRIC_BIN_PATH,
     },
@@ -155,7 +155,7 @@ if not ONE_OFF:
         "SERVER_SSH_IP" : "192.168.86.100",
         "SERVER_TEST_IP" : OPENVPN_SERVER_IP,
         "CLIENT_SSH_IP" : "192.168.86.200",
-        "RESULTS_FILE_PREFIX" : "vm_openvpn",
+        "RESULTS_FILE_PREFIX" : "vm_one_core_openvpn",
         "NIC_NAME" : "ens34",
         "METRICS_BIN_PATH" : VM_METRIC_BIN_PATH,
     },
