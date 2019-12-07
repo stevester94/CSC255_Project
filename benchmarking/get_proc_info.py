@@ -10,7 +10,6 @@ pp = pprint.PrettyPrinter()
 pids_first = {}
 pids_last  = {}
 
-diffs = []
 
 def populate_pids_dict(d):
     for proc in psutil.process_iter():
@@ -36,6 +35,24 @@ def test():
             pass
     sys.exit(0)
 
+def diff_and_sort_pids(first, last, duration):
+    diffs = []
+
+    for pid, val in last.items():
+        try:
+            diff = {}
+            diff["name"] = val["name"]
+            diff["voluntary_ctx_switches_difference_per_sec"] = (val["voluntary_ctx_switches"] - first[pid]["voluntary_ctx_switches"]) / duration
+
+            diffs.append(diff)
+        except:
+            pass
+
+    diffs.sort(key=lambda x: x["voluntary_ctx_switches_difference_per_sec"], reverse=True)
+
+    return diffs[:10]
+
+
 if __name__ == "__main__":
 
     if sys.argv[1] == "TEST": test()
@@ -45,18 +62,10 @@ if __name__ == "__main__":
     populate_pids_dict(pids_last)
 
     # Get how many context switches ocurred for each pid
-    for pid, val in pids_last.items():
-        try:
-            diff = {}
-            diff["name"] = val["name"]
-            diff["voluntary_ctx_switches_difference_per_sec"] = (val["voluntary_ctx_switches"] - pids_first[pid]["voluntary_ctx_switches"]) / int(sys.argv[1])
 
-            diffs.append(diff)
-        except:
-            pass
+    muh_pids = diff_and_sort_pids(pids_first, pids_last)
 
-diffs.sort(key=lambda x: x["voluntary_ctx_switches_difference_per_sec"], reverse=True)
 # pp.pprint(procs[0:10])
 
-for p in diffs[0:10]:
-    print(p)
+    for p in muh_pids[0:10]:
+        print(p)

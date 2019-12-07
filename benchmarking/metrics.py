@@ -9,6 +9,7 @@ from threading import Thread
 import pprint
 import json
 import sys
+import get_proc_info as GPI
 
 from interval_metric import  Interval_Metric
 
@@ -162,6 +163,9 @@ class Benchmark_Collector:
         network_initial = ps.net_io_counters(pernic=True)[self.nic_name]
         cpu_stats_intial = ps.cpu_stats()
 
+        self.pids_first = {}
+        GPI.populate_pids_dict(self.pids_first)
+
         while(time.time() - self.start_time  < self.duration_secs):
             time.sleep(self.interval_secs)
 
@@ -240,8 +244,14 @@ class Benchmark_Collector:
         # OK, kinda shitty, we have to convert all those named tuples to dicts in order to json them
         self.metrics = [m._asdict() for m in metrics]
 
+        self.pids_last = {}
+        GPI.populate_pids_dict(self.pids_last)
+
     def get_metrics(self):
         return self.metrics
+
+    def get_pids(self):
+        return GPI.diff_and_sort_pids(self.pids_first, self.pids_last, self.duration_secs)
 
 
 
@@ -320,6 +330,7 @@ if __name__ == "__main__":
     all_metrics["baseline"] = baseline_metrics
     all_metrics["protocol"] = protocol
     all_metrics["target_hostname"] = hostname
+    all_metrics["pid_metrics"] = bench.get_pids()
 
     if is_client:
         client_metrics = client.get_metrics()
