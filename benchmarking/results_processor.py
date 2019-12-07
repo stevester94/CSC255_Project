@@ -100,6 +100,7 @@ def build_summary_table_common_data(metrics_dict, metrics):
         "Avg MB Sent/sec (System)",
         "Avg MB Received/sec (System)",
         "Target Hostname",
+        "pid_metrics",
     ]
 
     rowData = [
@@ -112,6 +113,7 @@ def build_summary_table_common_data(metrics_dict, metrics):
         "{0:.2f} MB/sec".format(get_single_metric_average("bytes_sent_per_sec", metrics) / BYTES_PER_MBYTE),
         "{0:.2f} MB/sec".format(get_single_metric_average("bytes_received_per_sec", metrics) / BYTES_PER_MBYTE),
         metrics_dict["target_hostname"],
+        metrics_dict["pid_metrics"]
     ]
 
     return (rowLabels, rowData)

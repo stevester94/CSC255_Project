@@ -15,7 +15,7 @@ from interval_metric import  Interval_Metric
 
 COLLECTOR_PADDING_SECS = 2
 
-MAX_BANDWIDTH = "100m"
+MAX_BANDWIDTH = "0"
 
 pp = pprint.PrettyPrinter(indent=4)
 

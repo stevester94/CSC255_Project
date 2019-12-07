@@ -50,7 +50,7 @@ def diff_and_sort_pids(first, last, duration):
 
     diffs.sort(key=lambda x: x["voluntary_ctx_switches_difference_per_sec"], reverse=True)
 
-    return diffs[:10]
+    return diffs[:5]
 
 
 if __name__ == "__main__":
