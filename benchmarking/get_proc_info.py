@@ -63,7 +63,7 @@ if __name__ == "__main__":
 
     # Get how many context switches ocurred for each pid
 
-    muh_pids = diff_and_sort_pids(pids_first, pids_last)
+    muh_pids = diff_and_sort_pids(pids_first, pids_last, int(sys.argv[1]))
 
 # pp.pprint(procs[0:10])
 
